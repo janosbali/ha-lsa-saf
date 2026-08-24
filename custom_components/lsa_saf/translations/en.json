@@ -1,0 +1,92 @@
+{
+  "title": "LSA SAF",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to LSA SAF Data Service",
+        "description": "Enter the credentials from your free LSA SAF Data Service account. MTG Active Fire Detection is currently enabled; the integration is structured for additional LSA SAF products.",
+        "data": {
+          "username": "Username",
+          "password": "Password"
+        },
+        "data_description": {
+          "username": "LSA SAF Data Service username",
+          "password": "LSA SAF Data Service password"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Reauthentication required",
+        "description": "The LSA SAF Data Service rejected the saved credentials. Enter the username and current password for the same account.",
+        "data": {
+          "username": "Username",
+          "password": "Password"
+        },
+        "data_description": {
+          "username": "Username of the originally configured LSA SAF account",
+          "password": "Current LSA SAF Data Service password"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not connect to the LSA SAF Data Service",
+      "invalid_auth": "Invalid username or password"
+    },
+    "abort": {
+      "already_configured": "This LSA SAF account is already configured",
+      "reauth_successful": "Authentication details updated successfully",
+      "wrong_account": "The new credentials belong to a different LSA SAF account"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Active fire monitoring options",
+        "data": {
+          "radius_km": "Monitoring radius",
+          "min_confidence": "Minimum fire confidence",
+          "min_frp_mw": "Minimum fire radiative power",
+          "scan_interval_minutes": "Check interval",
+          "dedup_radius_km": "Same-fire matching radius",
+          "dedup_hours": "Same-fire memory"
+        },
+        "data_description": {
+          "radius_km": "Only MTG fire detections within this distance of Home Assistant's Home location are considered.",
+          "min_confidence": "0 includes all detections; 1 is the strictest possible filter.",
+          "min_frp_mw": "Ignore detections weaker than this FRP in MW.",
+          "scan_interval_minutes": "How often Home Assistant checks for a newer 10-minute MTG fire product.",
+          "dedup_radius_km": "A detection near a recently seen fire is treated as the same fire and will not generate another new-fire event.",
+          "dedup_hours": "How long a recently seen fire suppresses repeat new-fire events in the same area."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "nearest_fire": {
+        "name": "Nearest active fire"
+      },
+      "active_fire_count": {
+        "name": "Active fire clusters"
+      },
+      "raw_pixel_count": {
+        "name": "Fire pixels in radius"
+      },
+      "product_time": {
+        "name": "Latest fire product time"
+      },
+      "product_age": {
+        "name": "Fire product age"
+      }
+    },
+    "event": {
+      "new_fire": {
+        "name": "New active fire"
+      }
+    },
+    "number": {
+      "monitoring_radius": {
+        "name": "Active fire monitoring radius"
+      }
+    }
+  }
+}

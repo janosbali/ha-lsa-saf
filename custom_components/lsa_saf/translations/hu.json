@@ -1,0 +1,92 @@
+{
+  "title": "LSA SAF",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Kapcsolódás az LSA SAF Data Service-hez",
+        "description": "Add meg az ingyenes LSA SAF Data Service fiókod adatait. A v0.1.0 az MTG aktív tűzészlelést tartalmazza; az integráció további LSA SAF termékekkel bővíthető.",
+        "data": {
+          "username": "Felhasználónév",
+          "password": "Jelszó"
+        },
+        "data_description": {
+          "username": "LSA SAF Data Service felhasználónév",
+          "password": "LSA SAF Data Service jelszó"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Újrahitelesítés szükséges",
+        "description": "Az LSA SAF Data Service elutasította a mentett hitelesítési adatokat. Add meg újra a fiók felhasználónevét és jelszavát.",
+        "data": {
+          "username": "Felhasználónév",
+          "password": "Jelszó"
+        },
+        "data_description": {
+          "username": "Az eredeti LSA SAF fiók felhasználóneve",
+          "password": "Az LSA SAF Data Service aktuális jelszava"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Nem sikerült kapcsolódni az LSA SAF Data Service-hez",
+      "invalid_auth": "Hibás felhasználónév vagy jelszó"
+    },
+    "abort": {
+      "already_configured": "Ez az LSA SAF fiók már be van állítva",
+      "reauth_successful": "A hitelesítési adatok frissítve lettek",
+      "wrong_account": "Az új hitelesítési adatok egy másik LSA SAF fiókhoz tartoznak"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Aktív tűzfigyelés beállításai",
+        "data": {
+          "radius_km": "Figyelési sugár",
+          "min_confidence": "Minimális megbízhatóság",
+          "min_frp_mw": "Minimális tűzsugárzási teljesítmény",
+          "scan_interval_minutes": "Ellenőrzési gyakoriság",
+          "dedup_radius_km": "Azonos tűz illesztési sugara",
+          "dedup_hours": "Azonos tűz megjegyzési ideje"
+        },
+        "data_description": {
+          "radius_km": "Csak a Home Assistant Otthon helyétől ezen a távolságon belüli MTG tűzészlelések számítanak.",
+          "min_confidence": "A 0 minden észlelést enged; az 1 a legszigorúbb szűrés.",
+          "min_frp_mw": "Az ennél gyengébb FRP-jű észlelések figyelmen kívül maradnak.",
+          "scan_interval_minutes": "Milyen gyakran ellenőrizze a Home Assistant az új 10 perces MTG tűzterméket.",
+          "dedup_radius_km": "A közelmúltban látott tűzhöz közeli észlelés ugyanannak a tűznek számít, így nem keletkezik új esemény.",
+          "dedup_hours": "Ennyi ideig nyomja el az azonos helyen jelentkező ismételt új-tűz eseményt."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "nearest_fire": {
+        "name": "Legközelebbi aktív tűz"
+      },
+      "active_fire_count": {
+        "name": "Aktív tűzcsoportok"
+      },
+      "raw_pixel_count": {
+        "name": "Tűzpixelek a körön belül"
+      },
+      "product_time": {
+        "name": "Legfrissebb tűztermék ideje"
+      },
+      "product_age": {
+        "name": "Tűztermék kora"
+      }
+    },
+    "event": {
+      "new_fire": {
+        "name": "Új aktív tűz"
+      }
+    },
+    "number": {
+      "monitoring_radius": {
+        "name": "Aktív tűz figyelési sugár"
+      }
+    }
+  }
+}
