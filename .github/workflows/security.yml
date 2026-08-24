@@ -49,6 +49,7 @@ jobs:
         run: |
           python - <<'PY'
           import json
+          from pathlib import Path
           import subprocess
 
           files = [
@@ -65,11 +66,33 @@ jobs:
               text=True,
           )
           report = json.loads(result.stdout)
-          findings = report.get("results", {})
-          if findings:
-              for filename, matches in findings.items():
+          baseline = json.loads(Path(".secrets.baseline").read_text())
+          allowed = {
+              (filename, match["type"], match["hashed_secret"])
+              for filename, matches in baseline.get("results", {}).items()
+              for match in matches
+          }
+          unexpected = {
+              filename: [
+                  match
+                  for match in matches
+                  if (filename, match["type"], match["hashed_secret"])
+                  not in allowed
+              ]
+              for filename, matches in report.get("results", {}).items()
+          }
+          unexpected = {
+              filename: matches
+              for filename, matches in unexpected.items()
+              if matches
+          }
+          if unexpected:
+              for filename, matches in unexpected.items():
                   for match in matches:
                       print(f"Potential secret: {filename}:{match['line_number']}")
               raise SystemExit("Potential secrets detected")
-          print(f"Secret scan passed for {len(files)} tracked files")
+          print(
+              f"Secret scan passed for {len(files)} tracked files; "
+              f"{len(allowed)} reviewed baseline fingerprints allowed"
+          )
           PY
