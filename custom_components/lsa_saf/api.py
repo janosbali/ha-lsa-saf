@@ -1,7 +1,12 @@
 """Shared LSA SAF Data Service HTTP client."""
 from __future__ import annotations
 
-from aiohttp import BasicAuth, ClientSession
+from urllib.parse import urlsplit
+
+from aiohttp import BasicAuth, ClientSession, ClientTimeout
+
+ALLOWED_HOST = "datalsasaf.lsasvcs.ipma.pt"
+REQUEST_TIMEOUT = ClientTimeout(total=30, connect=10, sock_read=20)
 
 
 class LsaSafError(Exception):
@@ -23,3 +28,16 @@ class LsaSafApi:
     def __init__(self, session: ClientSession, username: str, password: str) -> None:
         self._session = session
         self._auth = BasicAuth(username, password)
+
+
+def validate_service_url(url: str) -> None:
+    """Reject non-HTTPS and non-LSA SAF destinations before credentials are sent."""
+    parsed = urlsplit(url)
+    if (
+        parsed.scheme != "https"
+        or parsed.hostname != ALLOWED_HOST
+        or parsed.port not in (None, 443)
+        or parsed.username is not None
+        or parsed.password is not None
+    ):
+        raise LsaSafError("Refusing an untrusted LSA SAF service URL")

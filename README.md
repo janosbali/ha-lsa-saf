@@ -165,5 +165,9 @@ The repository includes automated GitHub Actions for:
 - Python 3.14 syntax compilation and JSON validation
 - Home Assistant Hassfest validation
 - HACS repository validation
+- CodeQL static analysis
+- Bandit Python security analysis
+- pip-audit dependency vulnerability checks
+- repository secret-pattern scanning and weekly Dependabot updates
 
 The HACS action temporarily ignores the `brands` check for initial custom-repository testing. Before submitting the project to the HACS default repository, add original brand assets for this integration and remove that ignore. A GitHub release is recommended for stable HACS version selection.

@@ -1,0 +1,32 @@
+name: Security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "41 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  static-and-dependencies:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+      - name: Install security scanners
+        run: python -m pip install --disable-pip-version-check bandit pip-audit detect-secrets
+      - name: Bandit
+        run: bandit -r custom_components -ll -ii
+      - name: Dependency audit
+        run: pip-audit -r requirements-test.txt
+      - name: Secret-pattern scan
+        run: detect-secrets scan --baseline .secrets.baseline --all-files --exclude-files '^(\.git/|\.venv)' && git diff --exit-code -- .secrets.baseline

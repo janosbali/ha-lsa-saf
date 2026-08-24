@@ -150,9 +150,10 @@ class LsaSafCoordinator(DataUpdateCoordinator[CoordinatorData]):
                     break
 
             if matched is None:
-                track_id = hashlib.sha1(
-                    f"{cluster.latitude:.4f}:{cluster.longitude:.4f}:{cluster.acquired.isoformat()}".encode()
-                ).hexdigest()[:12]
+                track_id = hashlib.blake2s(
+                    f"{cluster.latitude:.4f}:{cluster.longitude:.4f}:{cluster.acquired.isoformat()}".encode(),
+                    digest_size=6,
+                ).hexdigest()
                 matched = {
                     "track_id": track_id,
                     "latitude": cluster.latitude,

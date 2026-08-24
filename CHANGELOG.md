@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.4
+
+- Restrict authenticated requests to the official HTTPS LSA SAF host and reject redirects.
+- Add explicit connect/read/total HTTP timeouts and sanitized transport errors.
+- Limit compressed downloads, bounded gzip expansion, CSV rows, columns, and field sizes.
+- Reject duplicate CSV columns, implausible timestamps, and non-finite/out-of-range numeric values.
+- Add CodeQL, Bandit, pip-audit, secret-pattern scanning, and Dependabot automation.
+- Add regression tests for URL, download, gzip-bomb, CSV-shape, and numeric validation.
+
 ## 0.1.3
 
 - Added full config-flow, reauthentication, duplicate-account, error-recovery, and options-flow tests.
