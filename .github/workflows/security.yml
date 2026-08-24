@@ -46,4 +46,30 @@ jobs:
             echo "No third-party runtime dependencies to audit"
           fi
       - name: Secret-pattern scan
-        run: detect-secrets scan --baseline .secrets.baseline --all-files --exclude-files '^(\.git/|\.venv)' && git diff --exit-code -- .secrets.baseline
+        run: |
+          python - <<'PY'
+          import json
+          import subprocess
+
+          files = [
+              name
+              for name in subprocess.check_output(
+                  ["git", "ls-files", "-z"], text=True
+              ).split("\0")
+              if name and name != ".secrets.baseline"
+          ]
+          result = subprocess.run(
+              ["detect-secrets", "scan", *files],
+              check=True,
+              capture_output=True,
+              text=True,
+          )
+          report = json.loads(result.stdout)
+          findings = report.get("results", {})
+          if findings:
+              for filename, matches in findings.items():
+                  for match in matches:
+                      print(f"Potential secret: {filename}:{match['line_number']}")
+              raise SystemExit("Potential secrets detected")
+          print(f"Secret scan passed for {len(files)} tracked files")
+          PY
