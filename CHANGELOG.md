@@ -7,6 +7,7 @@
 - Limit compressed downloads, bounded gzip expansion, CSV rows, columns, and field sizes.
 - Reject duplicate CSV columns, implausible timestamps, and non-finite/out-of-range numeric values.
 - Add CodeQL, Bandit, pip-audit, secret-pattern scanning, and Dependabot automation.
+- Scope pip-audit to dependencies shipped by the integration instead of the non-runtime Home Assistant test harness.
 - Add regression tests for URL, download, gzip-bomb, CSV-shape, and numeric validation.
 
 ## 0.1.3
