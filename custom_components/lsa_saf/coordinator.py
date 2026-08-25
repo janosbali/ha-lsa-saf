@@ -58,9 +58,11 @@ class FireCluster:
     frp_mw: float
     acquired: datetime
     pixel_count: int
+    track_id: str | None = None
+    peak_frp_mw: float | None = None
 
     def attrs(self) -> dict[str, Any]:
-        return {
+        attrs = {
             ATTR_LATITUDE: round(self.latitude, 6),
             ATTR_LONGITUDE: round(self.longitude, 6),
             ATTR_DISTANCE_KM: round(self.distance_km, 2),
@@ -69,6 +71,11 @@ class FireCluster:
             ATTR_ACQUIRED: self.acquired.isoformat(),
             ATTR_PIXEL_COUNT: self.pixel_count,
         }
+        if self.track_id is not None:
+            attrs[ATTR_TRACK_ID] = self.track_id
+        if self.peak_frp_mw is not None:
+            attrs[ATTR_PEAK_FRP_MW] = round(self.peak_frp_mw, 2)
+        return attrs
 
 
 @dataclass(slots=True)
@@ -79,6 +86,7 @@ class CoordinatorData:
     source_url: str
     filename: str
     active_clusters: list[FireCluster]
+    tracked_fires: list[FireCluster]
     new_fires: list[dict[str, Any]]
     raw_pixels_in_radius: int
 
@@ -142,9 +150,12 @@ class LsaSafCoordinator(DataUpdateCoordinator[CoordinatorData]):
         new_fires: list[dict[str, Any]] = []
         changed = False
         first_snapshot = not self._initialized
+        matched_track_ids: set[str] = set()
         for cluster in clusters:
             matched: dict[str, Any] | None = None
             for track in self._tracks:
+                if track.get("track_id") in matched_track_ids:
+                    continue
                 if haversine_km(cluster.latitude, cluster.longitude, float(track["latitude"]), float(track["longitude"])) <= dedup_radius:
                     matched = track
                     break
@@ -161,13 +172,16 @@ class LsaSafCoordinator(DataUpdateCoordinator[CoordinatorData]):
                     "first_seen": cluster.acquired.isoformat(),
                     "last_seen": cluster.acquired.isoformat(),
                     "peak_frp_mw": cluster.frp_mw,
+                    "frp_mw": cluster.frp_mw,
+                    "confidence": cluster.confidence,
+                    "pixel_count": cluster.pixel_count,
                 }
                 self._tracks.append(matched)
+                cluster.track_id = track_id
+                cluster.peak_frp_mw = cluster.frp_mw
                 attrs = cluster.attrs() | {
-                    ATTR_TRACK_ID: track_id,
                     ATTR_SOURCE_URL: product.url,
                     ATTR_PRODUCT_TIME: product.product_time.isoformat(),
-                    ATTR_PEAK_FRP_MW: round(cluster.frp_mw, 2),
                 }
                 if not first_snapshot:
                     new_fires.append(attrs)
@@ -178,7 +192,13 @@ class LsaSafCoordinator(DataUpdateCoordinator[CoordinatorData]):
                 matched["longitude"] = cluster.longitude
                 matched["last_seen"] = cluster.acquired.isoformat()
                 matched["peak_frp_mw"] = max(float(matched.get("peak_frp_mw", 0)), cluster.frp_mw)
+                matched["frp_mw"] = cluster.frp_mw
+                matched["confidence"] = cluster.confidence
+                matched["pixel_count"] = cluster.pixel_count
+                cluster.track_id = str(matched["track_id"])
+                cluster.peak_frp_mw = float(matched["peak_frp_mw"])
                 changed = True
+            matched_track_ids.add(str(matched["track_id"]))
 
         if first_snapshot:
             self._initialized = True
@@ -192,9 +212,44 @@ class LsaSafCoordinator(DataUpdateCoordinator[CoordinatorData]):
             source_url=product.url,
             filename=product.filename,
             active_clusters=clusters,
+            tracked_fires=_tracked_fire_clusters(self._tracks, home_lat, home_lon),
             new_fires=new_fires,
             raw_pixels_in_radius=len(filtered),
         )
+
+
+def _tracked_fire_clusters(
+    tracks: list[dict[str, Any]], home_lat: float, home_lon: float
+) -> list[FireCluster]:
+    """Convert persisted recent tracks into map-ready fire clusters."""
+    result: list[FireCluster] = []
+    for track in tracks:
+        try:
+            latitude = float(track["latitude"])
+            longitude = float(track["longitude"])
+            acquired = _parse_dt(track.get("last_seen"))
+            track_id = str(track["track_id"])
+            confidence = float(track["confidence"])
+            frp_mw = float(track["frp_mw"])
+            pixel_count = int(track["pixel_count"])
+            peak_frp_mw = float(track["peak_frp_mw"])
+        except (KeyError, TypeError, ValueError):
+            # Tracks written before v0.1.5 do not contain enough map metadata.
+            continue
+        result.append(
+            FireCluster(
+                latitude=latitude,
+                longitude=longitude,
+                distance_km=haversine_km(home_lat, home_lon, latitude, longitude),
+                confidence=confidence,
+                frp_mw=frp_mw,
+                acquired=acquired,
+                pixel_count=pixel_count,
+                track_id=track_id,
+                peak_frp_mw=peak_frp_mw,
+            )
+        )
+    return sorted(result, key=lambda cluster: cluster.distance_km)
 
 
 def _cluster_pixels(

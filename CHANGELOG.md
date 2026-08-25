@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.5
+
+- Add native Home Assistant `geo_location` entities for every active fire cluster.
+- Expose distance, coordinates, FRP, peak FRP, confidence, acquisition time, pixel count, product time, and source URL on map entities.
+- Retain fire markers for the configured same-fire memory period, then remove them automatically.
+- Preserve stable map entity identities while a tracked fire moves within the configured same-fire matching radius.
+- Prevent two simultaneous clusters from being assigned the same persisted track.
+- Add regression tests for map coordinates, state, attributes, and tracked-cluster updates.
+
 ## 0.1.4
 
 - Restrict authenticated requests to the official HTTPS LSA SAF host and reject redirects.

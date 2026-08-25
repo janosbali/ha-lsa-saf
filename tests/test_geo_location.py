@@ -1,0 +1,128 @@
+"""Tests for LSA SAF map entities and cluster metadata."""
+from __future__ import annotations
+
+from datetime import UTC, datetime
+from types import SimpleNamespace
+from unittest.mock import Mock
+
+from custom_components.lsa_saf.const import (
+    ATTR_PEAK_FRP_MW,
+    ATTR_PRODUCT_TIME,
+    ATTR_SOURCE_URL,
+    ATTR_TRACK_ID,
+    DOMAIN,
+)
+from custom_components.lsa_saf.coordinator import (
+    CoordinatorData,
+    FireCluster,
+    _tracked_fire_clusters,
+)
+from custom_components.lsa_saf.geo_location import LsaSafFireLocation
+
+
+def _cluster(**changes) -> FireCluster:
+    values = {
+        "latitude": 46.253,
+        "longitude": 20.141,
+        "distance_km": 12.34,
+        "confidence": 0.91,
+        "frp_mw": 42.5,
+        "acquired": datetime(2026, 8, 25, 20, 20, tzinfo=UTC),
+        "pixel_count": 2,
+        "track_id": "abcdef123456",
+        "peak_frp_mw": 51.0,
+    }
+    values.update(changes)
+    return FireCluster(**values)
+
+
+def _entity(cluster: FireCluster) -> LsaSafFireLocation:
+    entity = object.__new__(LsaSafFireLocation)
+    entity._cluster = cluster
+    entity._coordinator = SimpleNamespace(
+        data=CoordinatorData(
+            product_time=datetime(2026, 8, 25, 20, 30, tzinfo=UTC),
+            source_url="https://datalsasaf.lsasvcs.ipma.pt/product.csv.gz",
+            filename="product.csv.gz",
+            active_clusters=[cluster],
+            tracked_fires=[cluster],
+            new_fires=[],
+            raw_pixels_in_radius=2,
+        )
+    )
+    return entity
+
+
+def test_cluster_attributes_include_tracking_metadata() -> None:
+    attrs = _cluster().attrs()
+
+    assert attrs[ATTR_TRACK_ID] == "abcdef123456"
+    assert attrs[ATTR_PEAK_FRP_MW] == 51.0
+
+
+def test_map_entity_exposes_location_distance_and_details() -> None:
+    entity = _entity(_cluster())
+
+    assert entity.source == DOMAIN
+    assert entity.latitude == 46.253
+    assert entity.longitude == 20.141
+    assert entity.distance == 12.34
+    assert entity.state == 12.3
+    assert entity.extra_state_attributes[ATTR_TRACK_ID] == "abcdef123456"
+    assert entity.extra_state_attributes[ATTR_PEAK_FRP_MW] == 51.0
+    assert entity.extra_state_attributes[ATTR_PRODUCT_TIME] == "2026-08-25T20:30:00+00:00"
+    assert entity.extra_state_attributes[ATTR_SOURCE_URL].startswith("https://datalsasaf.")
+
+
+def test_map_entity_updates_existing_track_without_changing_identity() -> None:
+    entity = _entity(_cluster())
+    entity.async_write_ha_state = Mock()
+    updated = _cluster(latitude=46.5, longitude=20.5, distance_km=31.0, frp_mw=60.0)
+
+    entity.set_cluster(updated)
+
+    assert entity.latitude == 46.5
+    assert entity.longitude == 20.5
+    assert entity.distance == 31.0
+
+
+def test_recent_tracks_become_separate_map_markers() -> None:
+    tracks = [
+        {
+            "track_id": "first",
+            "latitude": 46.253,
+            "longitude": 20.141,
+            "last_seen": "2026-08-25T20:20:00+00:00",
+            "confidence": 0.91,
+            "frp_mw": 42.5,
+            "peak_frp_mw": 51.0,
+            "pixel_count": 2,
+        },
+        {
+            "track_id": "second",
+            "latitude": 47.0,
+            "longitude": 21.0,
+            "last_seen": "2026-08-25T20:30:00+00:00",
+            "confidence": 0.67,
+            "frp_mw": 13.97,
+            "peak_frp_mw": 13.97,
+            "pixel_count": 1,
+        },
+    ]
+
+    markers = _tracked_fire_clusters(tracks, 46.2, 20.1)
+
+    assert {marker.track_id for marker in markers} == {"first", "second"}
+    assert all(marker.distance_km > 0 for marker in markers)
+
+
+def test_legacy_track_without_map_metadata_is_ignored() -> None:
+    legacy_track = {
+        "track_id": "legacy",
+        "latitude": 46.253,
+        "longitude": 20.141,
+        "last_seen": "2026-08-25T20:20:00+00:00",
+        "peak_frp_mw": 51.0,
+    }
+
+    assert _tracked_fire_clusters([legacy_track], 46.2, 20.1) == []
