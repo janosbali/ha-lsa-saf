@@ -90,7 +90,7 @@ class ActiveFireClient(LsaSafApi):
             try:
                 async with self._session.get(
                     url,
-                    auth=self._auth,
+                    headers=self._headers,
                     allow_redirects=False,
                     timeout=REQUEST_TIMEOUT,
                 ) as response:

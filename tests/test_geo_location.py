@@ -39,7 +39,7 @@ def _cluster(**changes) -> FireCluster:
 def _entity(cluster: FireCluster) -> LsaSafFireLocation:
     entity = object.__new__(LsaSafFireLocation)
     entity._cluster = cluster
-    entity._coordinator = SimpleNamespace(
+    entity.coordinator = SimpleNamespace(
         data=CoordinatorData(
             product_time=datetime(2026, 8, 25, 20, 30, tzinfo=UTC),
             source_url="https://datalsasaf.lsasvcs.ipma.pt/product.csv.gz",

@@ -7,6 +7,7 @@
 - Retain fire markers for the configured same-fire memory period, then remove them automatically.
 - Preserve stable map entity identities while a tracked fire moves within the configured same-fire matching radius.
 - Prevent two simultaneous clusters from being assigned the same persisted track.
+- Replace deprecated aiohttp BasicAuth request handling with an explicit encoded Authorization header.
 - Add regression tests for map coordinates, state, attributes, and tracked-cluster updates.
 
 ## 0.1.4

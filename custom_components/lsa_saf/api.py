@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from urllib.parse import urlsplit
 
-from aiohttp import BasicAuth, ClientSession, ClientTimeout
+from aiohttp import ClientSession, ClientTimeout, encode_basic_auth
 
 ALLOWED_HOST = "datalsasaf.lsasvcs.ipma.pt"
 REQUEST_TIMEOUT = ClientTimeout(total=30, connect=10, sock_read=20)
@@ -21,13 +21,13 @@ class LsaSafApi:
     """Shared authenticated client for the LSA SAF Data Service.
 
     Credentials are kept only in the Home Assistant config entry and in the
-    aiohttp BasicAuth object used by this runtime client. The plaintext
+    encoded Authorization header used by this runtime client. The plaintext
     password is intentionally not copied to a separate instance attribute.
     """
 
     def __init__(self, session: ClientSession, username: str, password: str) -> None:
         self._session = session
-        self._auth = BasicAuth(username, password)
+        self._headers = {"Authorization": encode_basic_auth(username, password)}
 
 
 def validate_service_url(url: str) -> None:
