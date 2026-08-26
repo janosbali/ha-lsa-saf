@@ -128,14 +128,17 @@ triggers:
 actions:
   - action: notify.mobile_app_iphone_13_pro
     data:
-      title: "🔥 New satellite fire detection"
-      message: >
-        LSA SAF MTG detected a new active fire
-        {{ trigger.event.data.distance_km }} km from Home.
-        FRP: {{ trigger.event.data.frp_mw }} MW.
-        Confidence: {{ (trigger.event.data.confidence * 100) | round(0) }}%.
+      title: "{{ trigger.event.data.notification_title }}"
+      message: "{{ trigger.event.data.notification_message }}"
 mode: queued
 ```
+
+The integration resolves the nearest settlement before publishing a new-fire
+event. `notification_title` and `notification_message` are concise and follow
+the Home Assistant system language: Hungarian installations use **Tűzészlelés
+riasztás**, while other languages currently fall back to English. If place-name
+lookup is disabled or unavailable, the message safely falls back to distance
+from Home.
 
 ## Architecture
 

@@ -24,6 +24,8 @@ from .const import (
     ATTR_LONGITUDE,
     ATTR_LOCATION_DESCRIPTION,
     ATTR_NEAREST_SETTLEMENT,
+    ATTR_NOTIFICATION_MESSAGE,
+    ATTR_NOTIFICATION_TITLE,
     ATTR_PLACE_ATTRIBUTION,
     ATTR_PLACE_NAME,
     ATTR_PEAK_FRP_MW,
@@ -46,7 +48,12 @@ from .const import (
     DEFAULT_SCAN_INTERVAL_MINUTES,
     DOMAIN,
 )
-from .geocoding import GEONAMES_ATTRIBUTION, PlaceLookupError, PlaceNameResolver
+from .geocoding import (
+    GEONAMES_ATTRIBUTION,
+    PlaceInfo,
+    PlaceLookupError,
+    PlaceNameResolver,
+)
 
 _LOGGER = logging.getLogger(__name__)
 STORE_VERSION = 1
@@ -213,11 +220,21 @@ class LsaSafCoordinator(DataUpdateCoordinator[CoordinatorData]):
                 self._tracks.append(matched)
                 cluster.track_id = track_id
                 cluster.peak_frp_mw = cluster.frp_mw
+                if not first_snapshot:
+                    await self._async_resolve_new_fire_place(matched, cluster)
                 attrs = cluster.attrs() | {
                     ATTR_SOURCE_URL: product.url,
                     ATTR_PRODUCT_TIME: product.product_time.isoformat(),
                 }
                 if not first_snapshot:
+                    title, message = _notification_text(
+                        self.hass.config.language,
+                        cluster.nearest_settlement,
+                        cluster.distance_km,
+                        cluster.confidence,
+                    )
+                    attrs[ATTR_NOTIFICATION_TITLE] = title
+                    attrs[ATTR_NOTIFICATION_MESSAGE] = message
                     new_fires.append(attrs)
                     self.hass.bus.async_fire(BUS_EVENT_NEW_FIRE, attrs)
                 changed = True
@@ -255,6 +272,21 @@ class LsaSafCoordinator(DataUpdateCoordinator[CoordinatorData]):
             raw_pixels_in_radius=len(filtered),
         )
 
+    async def _async_resolve_new_fire_place(
+        self, track: dict[str, Any], cluster: FireCluster
+    ) -> None:
+        """Resolve a new fire before publishing its notification event."""
+        if self._place_resolver is None:
+            return
+        try:
+            place = await self._place_resolver.async_resolve(
+                cluster.latitude, cluster.longitude
+            )
+        except PlaceLookupError as err:
+            _LOGGER.debug("Could not resolve a new fire place name: %s", err)
+            return
+        _apply_place(track, cluster, place)
+
     def _schedule_place_lookup(self, track: dict[str, Any]) -> None:
         """Schedule one cached background lookup for an unresolved track."""
         track_id = str(track.get("track_id", ""))
@@ -290,10 +322,7 @@ class LsaSafCoordinator(DataUpdateCoordinator[CoordinatorData]):
             )
             if track is None:
                 return
-            track["place_name"] = place.place_name
-            track["nearest_settlement"] = place.nearest_settlement
-            track["location_description"] = place.location_description
-            track["place_attribution"] = place.attribution
+            _apply_place(track, None, place)
             await self._store.async_save(
                 {"initialized": self._initialized, "tracks": self._tracks}
             )
@@ -310,6 +339,45 @@ class LsaSafCoordinator(DataUpdateCoordinator[CoordinatorData]):
             _LOGGER.debug("Could not resolve place name for fire %s: %s", track_id, err)
         finally:
             self._pending_place_ids.discard(track_id)
+
+
+def _apply_place(
+    track: dict[str, Any], cluster: FireCluster | None, place: PlaceInfo
+) -> None:
+    """Apply one resolved place consistently to persisted and live data."""
+    track["place_name"] = place.place_name
+    track["nearest_settlement"] = place.nearest_settlement
+    track["location_description"] = place.location_description
+    track["place_attribution"] = place.attribution
+    if cluster is not None:
+        cluster.place_name = place.place_name
+        cluster.nearest_settlement = place.nearest_settlement
+        cluster.location_description = place.location_description
+        cluster.place_attribution = place.attribution
+
+
+def _notification_text(
+    language: str | None,
+    settlement: str | None,
+    distance_km: float,
+    confidence: float,
+) -> tuple[str, str]:
+    """Build a concise localized mobile-notification title and message."""
+    confidence_percent = round(confidence * 100)
+    if (language or "").lower().startswith("hu"):
+        distance = f"{distance_km:.1f}".replace(".", ",")
+        location = f" {settlement} közelében" if settlement else ""
+        return (
+            "🔥 Tűzészlelés riasztás",
+            f"Tűz észlelve{location}, {distance} km-re az otthonodtól. "
+            f"Megbízhatóság: {confidence_percent}%.",
+        )
+    location = f" near {settlement}" if settlement else ""
+    return (
+        "🔥 Fire detection alert",
+        f"Fire detected{location}, {distance_km:.1f} km from Home. "
+        f"Confidence: {confidence_percent}%.",
+    )
 
 
 def _tracked_fire_clusters(

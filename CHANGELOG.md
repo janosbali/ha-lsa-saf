@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.9
+
+- Resolve the nearest settlement before publishing each new-fire event.
+- Add concise localized `notification_title` and `notification_message` event fields.
+- Use **Tűzészlelés riasztás** and a natural settlement-first message on Hungarian Home Assistant systems.
+- Fall back to an English notification or a distance-only message when needed.
+- Update the notification automation example to use the integration-provided localized text.
+
 ## 0.1.8
 
 - Replace all Nominatim network lookups with the bundled GeoNames `cities500` database.
