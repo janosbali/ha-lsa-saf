@@ -117,7 +117,7 @@ def test_map_annotation_adds_context_and_keeps_png() -> None:
     assert result.startswith(b"\x89PNG\r\n\x1a\n")
     with Image.open(BytesIO(result)) as image:
         assert image.size == (768, 512)
-        assert image.getpixel((10, 10)) != (16, 207, 224)
+        assert image.getpixel((20, 20)) != (16, 207, 224)
 
 
 def test_map_annotation_rejects_unexpected_dimensions() -> None:
