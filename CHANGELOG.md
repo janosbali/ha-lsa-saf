@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.7
+
+- Add a configurable HTTPS Nominatim reverse-geocoding endpoint for self-hosted and larger deployments.
+- Add a shared 90-day coordinate cache so nearby or recurring fires reuse one place lookup.
+- Limit the public Nominatim endpoint to 30 requests per hour and four requests per minute per installation.
+- Serialize custom-endpoint requests and cap them at 240 per hour per installation.
+- Back off for five minutes after transport failures and one hour after HTTP 429 or server errors.
+- Limit the persistent place cache to 5,000 recent entries.
+- Reject endpoint URLs containing credentials, query strings, fragments, non-HTTPS schemes, or unexpected paths.
+- Add configuration, URL-validation, cache-reuse, and cache-expiry regression tests.
+
 ## 0.1.6
 
 - Support fire-icon markers through the Home Assistant map card's `label_mode: icon` setting.

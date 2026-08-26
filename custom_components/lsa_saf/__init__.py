@@ -8,9 +8,11 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
+    CONF_GEOCODING_URL,
     CONF_PASSWORD,
     CONF_RESOLVE_PLACE_NAMES,
     CONF_USERNAME,
+    DEFAULT_GEOCODING_URL,
     DEFAULT_RESOLVE_PLACE_NAMES,
     PLATFORMS,
 )
@@ -33,11 +35,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: LsaSafConfigEntry) -> bo
     """Set up LSA SAF from a config entry."""
     session = async_get_clientsession(hass)
     client = ActiveFireClient(session, entry.data[CONF_USERNAME], entry.data[CONF_PASSWORD])
-    resolver = (
-        PlaceNameResolver(session)
-        if entry.options.get(CONF_RESOLVE_PLACE_NAMES, DEFAULT_RESOLVE_PLACE_NAMES)
-        else None
-    )
+    resolver = None
+    if entry.options.get(CONF_RESOLVE_PLACE_NAMES, DEFAULT_RESOLVE_PLACE_NAMES):
+        resolver = PlaceNameResolver(
+            hass,
+            session,
+            entry.entry_id,
+            entry.options.get(CONF_GEOCODING_URL, DEFAULT_GEOCODING_URL),
+        )
+        await resolver.async_setup()
     coordinator = LsaSafCoordinator(hass, entry, client, resolver)
     await coordinator.async_config_entry_first_refresh()
     entry.runtime_data = RuntimeData(coordinator=coordinator)

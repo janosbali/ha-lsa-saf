@@ -48,7 +48,8 @@
           "scan_interval_minutes": "Ellenőrzési gyakoriság",
           "dedup_radius_km": "Azonos tűz illesztési sugara",
           "dedup_hours": "Azonos tűz megjegyzési ideje",
-          "resolve_place_names": "Közeli helynevek megjelenítése a térképen"
+          "resolve_place_names": "Közeli helynevek megjelenítése a térképen",
+          "geocoding_url": "Nominatim fordított geokódolási végpont"
         },
         "data_description": {
           "radius_km": "Csak a Home Assistant Otthon helyétől ezen a távolságon belüli MTG tűzészlelések számítanak.",
@@ -57,9 +58,13 @@
           "scan_interval_minutes": "Milyen gyakran ellenőrizze a Home Assistant az új 10 perces MTG tűzterméket.",
           "dedup_radius_km": "A közelmúltban látott tűzhöz közeli észlelés ugyanannak a tűznek számít, így nem keletkezik új esemény.",
           "dedup_hours": "Ennyi ideig nyomja el az azonos helyen jelentkező ismételt új-tűz eseményt.",
-          "resolve_place_names": "A nyilvános tűzkoordináták helynevét az OpenStreetMap Nominatim szolgáltatással keresi meg. Alapból kikapcsolt; az eredményeket gyorsítótárazza, a lekéréseket pedig korlátozza."
+          "resolve_place_names": "A nyilvános tűzkoordináták helynevét Nominatim szolgáltatással keresi meg. Alapból kikapcsolt; az eredményeket gyorsítótárazza, a lekéréseket pedig korlátozza.",
+          "geocoding_url": "Személyes használatnál a nyilvános végpont óránként legfeljebb 30 lekérést kap. Nagyobb telepítéshez saját, /reverse végű HTTPS Nominatim végpont szükséges."
         }
       }
+    },
+    "error": {
+      "invalid_geocoding_url": "Adj meg egy tiszta, /reverse végű HTTPS URL-t"
     }
   },
   "entity": {

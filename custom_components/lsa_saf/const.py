@@ -17,6 +17,7 @@ CONF_SCAN_INTERVAL_MINUTES = "scan_interval_minutes"
 CONF_DEDUP_RADIUS_KM = "dedup_radius_km"
 CONF_DEDUP_HOURS = "dedup_hours"
 CONF_RESOLVE_PLACE_NAMES = "resolve_place_names"
+CONF_GEOCODING_URL = "geocoding_url"
 
 PRODUCT_ACTIVE_FIRE = "active_fire"
 PRODUCT_FIRE_RISK = "fire_risk"
@@ -33,6 +34,7 @@ DEFAULT_SCAN_INTERVAL_MINUTES = 5
 DEFAULT_DEDUP_RADIUS_KM = 3.0
 DEFAULT_DEDUP_HOURS = 6
 DEFAULT_RESOLVE_PLACE_NAMES = False
+DEFAULT_GEOCODING_URL = "https://nominatim.openstreetmap.org/reverse"
 MIN_RADIUS_KM = 1.0
 MAX_RADIUS_KM = 500.0
 DEFAULT_UPDATE_INTERVAL = timedelta(minutes=DEFAULT_SCAN_INTERVAL_MINUTES)

@@ -71,10 +71,19 @@ with all fire attributes.
 The integration options can also enable **Show nearby place names on the map**.
 When enabled, only each public satellite fire coordinate is sent to the
 OpenStreetMap Nominatim reverse-geocoding service. Home coordinates and LSA SAF
-credentials are never sent. Results are stored with the fire track, requests are
-limited to four per minute, and polling is not blocked while names are resolved.
-The feature is disabled by default. Place data is © OpenStreetMap contributors,
-ODbL.
+credentials are never sent. Results are stored in a shared coordinate cache for
+90 days, requests are serialized, and polling is not blocked while names are
+resolved. The feature is disabled by default. Place data is © OpenStreetMap
+contributors, ODbL.
+
+The public Nominatim endpoint is intended only for small personal installations.
+It is limited to four requests per minute and 30 requests per hour per Home
+Assistant installation. It also applies automatic backoff after transport,
+rate-limit, or server errors. Deployments with many installations or many fires
+must configure their own HTTPS Nominatim-compatible `/reverse` endpoint in the
+integration options. Custom endpoints remain serialized and are capped at 240
+requests per hour per installation. Endpoint URLs cannot contain credentials,
+query strings, fragments, or non-HTTPS schemes.
 
 ### Home Assistant bus event
 

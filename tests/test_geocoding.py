@@ -1,6 +1,8 @@
 """Tests for bounded and privacy-conscious reverse geocoding."""
 from __future__ import annotations
 
+from collections import deque
+from datetime import UTC, datetime, timedelta
 import json
 
 import pytest
@@ -9,8 +11,12 @@ from custom_components.lsa_saf.geocoding import (
     MAX_RESPONSE_BYTES,
     NOMINATIM_ATTRIBUTION,
     PlaceLookupError,
+    PlaceNameResolver,
+    _cache_key,
+    _cached_place,
     _read_limited_json,
     parse_place_info,
+    validate_geocoding_url,
 )
 
 
@@ -75,3 +81,53 @@ async def test_bounded_json_reader_accepts_small_object() -> None:
 async def test_bounded_json_reader_rejects_unsafe_responses(response) -> None:
     with pytest.raises(PlaceLookupError):
         await _read_limited_json(response)
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "http://geo.example/reverse",
+        "https://user:secret@geo.example/reverse",
+        "https://geo.example/search",
+        "https://geo.example/reverse?token=secret",
+        "https://geo.example/reverse#fragment",
+    ],
+)
+def test_geocoding_url_validation_rejects_unsafe_endpoints(url: str) -> None:
+    with pytest.raises(ValueError):
+        validate_geocoding_url(url)
+
+
+def test_geocoding_url_validation_normalizes_base_url() -> None:
+    assert validate_geocoding_url(" https://geo.example/ ") == (
+        "https://geo.example/reverse"
+    )
+
+
+def test_coordinate_cache_is_shared_and_expires() -> None:
+    assert _cache_key(46.12341, 20.98761) == _cache_key(46.12349, 20.98759)
+    now = datetime.now(UTC)
+    entry = {
+        "resolved_at": now.isoformat(),
+        "place": {
+            "place_name": None,
+            "nearest_settlement": "Szeged",
+            "location_description": "Szeged közelében észlelt tűz",
+            "attribution": "© OpenStreetMap contributors, ODbL",
+        },
+    }
+
+    assert _cached_place(entry, now).nearest_settlement == "Szeged"
+    assert _cached_place(entry, now + timedelta(days=91)) is None
+
+
+def test_hourly_budget_prunes_only_expired_requests() -> None:
+    resolver = object.__new__(PlaceNameResolver)
+    now = datetime.now(UTC)
+    resolver._request_times = deque(
+        [now - timedelta(hours=2), now - timedelta(minutes=30)]
+    )
+
+    resolver._prune_request_times(now)
+
+    assert list(resolver._request_times) == [now - timedelta(minutes=30)]
