@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import UTC, date, datetime, timedelta
 import logging
 
-from homeassistant.components.camera import CameraEntity
+from homeassistant.components.camera import Camera
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
@@ -29,15 +29,16 @@ async def async_setup_entry(
     async_add_entities([FireRiskMapCamera(entry)])
 
 
-class FireRiskMapCamera(LsaSafFireRiskEntity, CameraEntity):
+class FireRiskMapCamera(LsaSafFireRiskEntity, Camera):
     """Display one selected day from the official FRMv3 WMS."""
 
     _attr_translation_key = "fire_risk_map"
-    _attr_content_type = "image/png"
     _attr_icon = "mdi:map-clock"
 
     def __init__(self, entry: LsaSafConfigEntry) -> None:
-        super().__init__(entry)
+        LsaSafFireRiskEntity.__init__(self, entry)
+        Camera.__init__(self)
+        self.content_type = "image/png"
         self._attr_unique_id = f"{entry.entry_id}_fire_risk_map"
         self._cached_key: tuple[date, float] | None = None
         self._cached_image: bytes | None = None

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.1
+
+- Fix startup on current Home Assistant releases by deriving the FRMv3 map
+  entity from `Camera`, the supported camera platform base class.
+- Initialize both the coordinator and camera base classes explicitly and serve
+  forecast images with the correct `image/png` content type.
+- Add a regression test that imports every declared integration platform.
+
 ## 0.2.0
 
 - Add the demonstration FRMv3 Fire Risk Map forecast for Europe.
