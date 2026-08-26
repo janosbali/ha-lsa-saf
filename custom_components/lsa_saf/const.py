@@ -41,7 +41,7 @@ MIN_RADIUS_KM = 1.0
 MAX_RADIUS_KM = 500.0
 DEFAULT_UPDATE_INTERVAL = timedelta(minutes=DEFAULT_SCAN_INTERVAL_MINUTES)
 
-PLATFORMS = ["sensor", "event", "number", "select", "camera", "geo_location"]
+PLATFORMS = ["sensor", "event", "number", "select", "camera", "calendar", "geo_location"]
 
 EVENT_NEW_FIRE = "new_fire"
 BUS_EVENT_NEW_FIRE = f"{DOMAIN}_new_fire"

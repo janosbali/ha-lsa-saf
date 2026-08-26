@@ -9,7 +9,7 @@ from PIL import Image
 import pytest
 
 from custom_components.lsa_saf.geocoding import MapPlace
-from custom_components.lsa_saf.map_render import annotate_fire_risk_map
+from custom_components.lsa_saf.map_render import COUNTRY_BORDERS, annotate_fire_risk_map
 from custom_components.lsa_saf.products.fire_risk import (
     FireRiskClient,
     FireRiskError,
@@ -118,6 +118,16 @@ def test_map_annotation_adds_context_and_keeps_png() -> None:
     with Image.open(BytesIO(result)) as image:
         assert image.size == (768, 512)
         assert image.getpixel((20, 20)) != (16, 207, 224)
+
+
+def test_bundled_country_borders_are_bounded() -> None:
+    assert 50 < len(COUNTRY_BORDERS) < 500
+    assert all(2 <= len(line) <= 500 for line in COUNTRY_BORDERS)
+    assert all(
+        -180 <= longitude <= 180 and -90 <= latitude <= 90
+        for line in COUNTRY_BORDERS
+        for longitude, latitude in line
+    )
 
 
 def test_map_annotation_rejects_unexpected_dimensions() -> None:

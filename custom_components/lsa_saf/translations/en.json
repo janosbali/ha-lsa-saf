@@ -137,6 +137,11 @@
         "name": "Fire risk forecast map"
       }
     },
+    "calendar": {
+      "fire_risk_forecast": {
+        "name": "10-day fire-risk forecast"
+      }
+    },
     "number": {
       "monitoring_radius": {
         "name": "Active fire monitoring radius"

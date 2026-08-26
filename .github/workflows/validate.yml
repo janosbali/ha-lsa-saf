@@ -26,6 +26,7 @@ jobs:
           python -m json.tool custom_components/lsa_saf/strings.json >/dev/null
           python -m json.tool custom_components/lsa_saf/translations/en.json >/dev/null
           python -m json.tool custom_components/lsa_saf/translations/hu.json >/dev/null
+          python -m json.tool custom_components/lsa_saf/data/country_borders.json >/dev/null
           python -m json.tool hacs.json >/dev/null
 
 

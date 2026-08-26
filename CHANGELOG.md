@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.4
+
+- Overlay country borders on the static FRMv3 forecast map using a compact,
+  bundled Natural Earth 1:110m European boundary extract.
+- Keep boundary rendering fully offline, with no API key, network request, or
+  disclosure of the Home location.
+- Validate the bundled geometry and render a contrasting halo so borders remain
+  visible across every fire-risk color.
+- Add a native localized ten-day fire-risk calendar entity so users can display
+  the full outlook with Home Assistant's standard Calendar card.
+
 ## 0.2.3
 
 - Make the official interactive FRMv3 viewer directly accessible from the LSA

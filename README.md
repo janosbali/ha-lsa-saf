@@ -154,6 +154,7 @@ service for Europe. It creates:
 - an independent **Fire-risk forecast radius** control;
 - a **Fire risk forecast map** camera showing the selected day;
 - a **Latest fire-risk forecast update** status sensor;
+- a localized **10-day fire-risk forecast** calendar entity;
 - a **Fire risk increase** event when the monitoring-area maximum rises to high
   or worse.
 
@@ -165,7 +166,13 @@ monitoring radius. This is a regional planning indicator, not a property-level
 prediction.
 
 The static Home Assistant map is annotated with its validity date, the Home
-position, prominent offline GeoNames settlements and a localized color legend.
+position, prominent offline GeoNames settlements, country borders and a
+localized color legend. Country boundaries use a compact bundled extract from
+Natural Earth at 1:110m scale and require no additional network request.
+
+For the full outlook without YAML templates, add Home Assistant's standard
+**Calendar** card to a dashboard and select the LSA SAF **10-day fire-risk
+forecast** calendar. Each all-day entry shows that day's localized risk level.
 For free pan, zoom, time navigation and layer opacity controls, open the
 [official LSA SAF ADAGUC viewer](https://adaguc.lsasvcs.ipma.pt/) and choose
 **MSG – FRMv3 – Fire Risk** under Add layers. This uses the product owner's
@@ -267,6 +274,8 @@ LSA SAF products are provided by the **EUMETSAT Satellite Application Facility o
 
 Offline settlement names are derived from [GeoNames](https://www.geonames.org/)
 `cities500`, licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+Country boundaries are derived from [Natural Earth](https://www.naturalearthdata.com/)
+1:110m Admin 0 boundary lines, provided in the public domain.
 
 ## License
 

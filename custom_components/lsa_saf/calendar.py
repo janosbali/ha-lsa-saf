@@ -1,0 +1,76 @@
+"""Ten-day FRMv3 forecast calendar."""
+from __future__ import annotations
+
+from datetime import datetime, timedelta
+
+from homeassistant.components.calendar import CalendarEntity, CalendarEvent
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+
+from . import LsaSafConfigEntry
+from .entity import LsaSafFireRiskEntity
+from .products.fire_risk import FireRiskDay
+
+RISK_LABELS = {
+    "en": {
+        "low": "Low", "moderate": "Moderate", "high": "High",
+        "very_high": "Very high", "extreme": "Extreme", "unknown": "Unknown",
+        "title": "Fire risk",
+        "description": "LSA SAF FRMv3 fire-risk forecast near Home",
+    },
+    "hu": {
+        "low": "Alacsony", "moderate": "Mérsékelt", "high": "Magas",
+        "very_high": "Nagyon magas", "extreme": "Szélsőséges",
+        "unknown": "Ismeretlen", "title": "Tűzkockázat",
+        "description": "LSA SAF FRMv3 tűzkockázati előrejelzés az otthon közelében",
+    },
+}
+
+
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: LsaSafConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
+) -> None:
+    async_add_entities([FireRiskForecastCalendar(entry)])
+
+
+class FireRiskForecastCalendar(LsaSafFireRiskEntity, CalendarEntity):
+    """Expose all forecast days in Home Assistant's native calendar UI."""
+
+    _attr_translation_key = "fire_risk_forecast"
+    _attr_icon = "mdi:calendar-alert"
+
+    def __init__(self, entry: LsaSafConfigEntry) -> None:
+        LsaSafFireRiskEntity.__init__(self, entry)
+        self._attr_unique_id = f"{entry.entry_id}_fire_risk_forecast"
+
+    @property
+    def event(self) -> CalendarEvent | None:
+        data = self.coordinator.data
+        return self._calendar_event(data.days[0]) if data and data.days else None
+
+    async def async_get_events(
+        self,
+        hass: HomeAssistant,
+        start_date: datetime,
+        end_date: datetime,
+    ) -> list[CalendarEvent]:
+        data = self.coordinator.data
+        if data is None:
+            return []
+        return [
+            self._calendar_event(day)
+            for day in data.days
+            if day.valid_date < end_date.date()
+            and day.valid_date + timedelta(days=1) > start_date.date()
+        ]
+
+    def _calendar_event(self, day: FireRiskDay) -> CalendarEvent:
+        labels = RISK_LABELS.get(self.hass.config.language, RISK_LABELS["en"])
+        return CalendarEvent(
+            summary=f"{labels['title']}: {labels[day.risk]}",
+            start=day.valid_date,
+            end=day.valid_date + timedelta(days=1),
+            description=labels["description"],
+        )

@@ -4,6 +4,8 @@ from __future__ import annotations
 from collections.abc import Iterable
 from datetime import date
 from io import BytesIO
+import json
+from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont, UnidentifiedImageError
 
@@ -40,6 +42,30 @@ LABELS = {
 }
 
 
+def _load_country_borders() -> tuple[tuple[tuple[float, float], ...], ...]:
+    """Load the small bundled Natural Earth Europe extract."""
+    path = Path(__file__).parent / "data" / "country_borders.json"
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        lines = payload["lines"]
+        if not isinstance(lines, list) or len(lines) > 500:
+            raise ValueError("unexpected boundary count")
+        result = []
+        for line in lines:
+            if not isinstance(line, list) or not 2 <= len(line) <= 500:
+                raise ValueError("unexpected boundary shape")
+            points = tuple((float(point[0]), float(point[1])) for point in line)
+            if any(not (-180 <= lon <= 180 and -90 <= lat <= 90) for lon, lat in points):
+                raise ValueError("invalid boundary coordinate")
+            result.append(points)
+        return tuple(result)
+    except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as err:
+        raise FireRiskError("Bundled country boundaries could not be loaded") from err
+
+
+COUNTRY_BORDERS = _load_country_borders()
+
+
 def annotate_fire_risk_map(
     image_bytes: bytes,
     bbox: tuple[float, float, float, float],
@@ -71,6 +97,8 @@ def annotate_fire_risk_map(
     font = ImageFont.load_default(size=15)
     small_font = ImageFont.load_default(size=13)
     width, height = image.size
+
+    _draw_country_borders(draw, bbox, width, height)
 
     title = f"FRMv3 · {labels['valid']}: {valid_date.isoformat()}"
     draw.rounded_rectangle((10, 10, 266, 42), radius=8, fill=(0, 0, 0, 185))
@@ -125,6 +153,22 @@ def annotate_fire_risk_map(
     output = BytesIO()
     image.convert("RGB").save(output, format="PNG", optimize=True)
     return output.getvalue()
+
+
+def _draw_country_borders(
+    draw: ImageDraw.ImageDraw,
+    bbox: tuple[float, float, float, float],
+    width: int,
+    height: int,
+) -> None:
+    """Draw clipped country boundaries with a contrasting halo."""
+    west, south, east, north = bbox
+    for line in COUNTRY_BORDERS:
+        if not any(west <= lon <= east and south <= lat <= north for lon, lat in line):
+            continue
+        pixels = [_map_pixel(lat, lon, bbox, width, height) for lon, lat in line]
+        draw.line(pixels, fill=(255, 255, 255, 210), width=3, joint="curve")
+        draw.line(pixels, fill=(35, 35, 35, 210), width=1, joint="curve")
 
 
 def _map_pixel(

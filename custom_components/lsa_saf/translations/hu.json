@@ -137,6 +137,11 @@
         "name": "Tűzkockázati előrejelzési térkép"
       }
     },
+    "calendar": {
+      "fire_risk_forecast": {
+        "name": "10 napos tűzkockázati előrejelzés"
+      }
+    },
     "number": {
       "monitoring_radius": {
         "name": "Aktív tűz figyelési sugár"
