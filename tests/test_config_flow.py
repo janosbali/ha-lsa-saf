@@ -312,7 +312,7 @@ async def test_options_rejects_unsafe_geocoding_endpoint(hass) -> None:
         CONF_DEDUP_RADIUS_KM: 3.0,
         CONF_DEDUP_HOURS: 6.0,
         CONF_RESOLVE_PLACE_NAMES: True,
-        CONF_GEOCODING_URL: "http://user:secret@localhost/reverse?next=evil",
+        CONF_GEOCODING_URL: "http://user@localhost/reverse?next=invalid",
     }
 
     result = await hass.config_entries.options.async_configure(result["flow_id"], unsafe)

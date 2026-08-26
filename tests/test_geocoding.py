@@ -87,9 +87,9 @@ async def test_bounded_json_reader_rejects_unsafe_responses(response) -> None:
     "url",
     [
         "http://geo.example/reverse",
-        "https://user:secret@geo.example/reverse",
+        "https://user@geo.example/reverse",
         "https://geo.example/search",
-        "https://geo.example/reverse?token=secret",
+        "https://geo.example/reverse?unexpected=value",
         "https://geo.example/reverse#fragment",
     ],
 )
