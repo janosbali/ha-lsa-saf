@@ -46,7 +46,7 @@ from .const import (
     DEFAULT_SCAN_INTERVAL_MINUTES,
     DOMAIN,
 )
-from .geocoding import PlaceLookupError, PlaceNameResolver
+from .geocoding import GEONAMES_ATTRIBUTION, PlaceLookupError, PlaceNameResolver
 
 _LOGGER = logging.getLogger(__name__)
 STORE_VERSION = 1
@@ -141,6 +141,15 @@ class LsaSafCoordinator(DataUpdateCoordinator[CoordinatorData]):
         if isinstance(stored, dict) and isinstance(stored.get("tracks"), list):
             self._tracks = stored["tracks"]
             self._initialized = bool(stored.get("initialized", True))
+            for track in self._tracks:
+                if track.get("place_attribution") != GEONAMES_ATTRIBUTION:
+                    for key in (
+                        "place_name",
+                        "nearest_settlement",
+                        "location_description",
+                        "place_attribution",
+                    ):
+                        track.pop(key, None)
         self._store_loaded = True
 
     async def _async_update_data(self) -> CoordinatorData:
@@ -264,7 +273,7 @@ class LsaSafCoordinator(DataUpdateCoordinator[CoordinatorData]):
         self.entry.async_create_background_task(
             self.hass,
             self._async_resolve_place(track_id, latitude, longitude),
-            f"{DOMAIN} reverse geocode {track_id}",
+            f"{DOMAIN} offline place lookup {track_id}",
         )
 
     async def _async_resolve_place(

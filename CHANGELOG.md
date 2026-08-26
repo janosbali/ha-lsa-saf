@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.8
+
+- Replace all Nominatim network lookups with the bundled GeoNames `cities500` database.
+- Resolve nearest settlements entirely on the Home Assistant device with no API quota or coordinate disclosure.
+- Remove the configurable geocoding endpoint, HTTP request code, rate limiting, backoff, and persistent geocoding cache.
+- Add a compact read-only SQLite dataset with indexed bounded-box searches outside the event loop.
+- Enable nearby settlement names by default while retaining the option to disable them.
+- Migrate previously cached Nominatim names to fresh offline GeoNames results.
+- Add GeoNames CC BY 4.0 attribution, deterministic dataset tooling, and offline lookup regression tests.
+
 ## 0.1.7
 
 - Add a configurable HTTPS Nominatim reverse-geocoding endpoint for self-hosted and larger deployments.

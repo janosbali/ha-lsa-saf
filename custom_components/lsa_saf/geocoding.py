@@ -1,276 +1,143 @@
-"""Bounded, cached, and rate-limited reverse geocoding."""
+"""Offline nearest-settlement lookup using the bundled GeoNames database."""
 from __future__ import annotations
 
 import asyncio
-from collections import deque
-from dataclasses import asdict, dataclass
-from datetime import UTC, datetime, timedelta
-import json
-from typing import Any
-from urllib.parse import urlsplit
+from dataclasses import dataclass
+import math
+from pathlib import Path
+import sqlite3
 
-from aiohttp import ClientError, ClientSession, ClientTimeout
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.storage import Store
 
-PUBLIC_NOMINATIM_URL = "https://nominatim.openstreetmap.org/reverse"
-NOMINATIM_ATTRIBUTION = "© OpenStreetMap contributors, ODbL"
-GEOCODE_TIMEOUT = ClientTimeout(total=12, connect=5, sock_read=7)
-MAX_RESPONSE_BYTES = 64 * 1024
-PUBLIC_MIN_INTERVAL_SECONDS = 15.0
-CUSTOM_MIN_INTERVAL_SECONDS = 1.0
-PUBLIC_REQUESTS_PER_HOUR = 30
-CUSTOM_REQUESTS_PER_HOUR = 240
-CACHE_TTL = timedelta(days=90)
-MAX_CACHE_ENTRIES = 5000
-USER_AGENT = "ha-lsa-saf/0.1.7 (https://github.com/janosbali/ha-lsa-saf)"
-STORE_VERSION = 1
+GEONAMES_ATTRIBUTION = "GeoNames, CC BY 4.0"
+DATABASE_PATH = Path(__file__).with_name("data") / "geonames_cities500.sqlite3"
+SEARCH_RADII_KM = (10.0, 25.0, 50.0, 100.0, 250.0, 500.0, 1000.0, 2500.0, 20020.0)
+EARTH_RADIUS_KM = 6371.0088
 
 
 class PlaceLookupError(Exception):
-    """A reverse-geocoding lookup could not be completed safely."""
-
-
-class PlaceLookupRateLimited(PlaceLookupError):
-    """The local request budget or remote backoff is active."""
+    """The bundled place database could not resolve a coordinate."""
 
 
 @dataclass(frozen=True, slots=True)
 class PlaceInfo:
-    """Sanitized place information for a fire coordinate."""
+    """Nearest settlement information for a fire coordinate."""
 
     place_name: str | None
     nearest_settlement: str | None
     location_description: str
-    attribution: str = NOMINATIM_ATTRIBUTION
-
-
-def validate_geocoding_url(value: str) -> str:
-    """Validate and normalize a user-configured Nominatim reverse endpoint."""
-    url = value.strip()
-    parsed = urlsplit(url)
-    if (
-        parsed.scheme != "https"
-        or not parsed.hostname
-        or parsed.username is not None
-        or parsed.password is not None
-        or parsed.query
-        or parsed.fragment
-    ):
-        raise ValueError("The geocoding endpoint must be a clean HTTPS URL")
-    path = parsed.path.rstrip("/")
-    if path and not path.endswith("/reverse"):
-        raise ValueError("The geocoding endpoint must end in /reverse")
-    return url.rstrip("/") + ("/reverse" if not path else "")
+    attribution: str = GEONAMES_ATTRIBUTION
 
 
 class PlaceNameResolver:
-    """Resolve fire coordinates with durable caching and local quotas."""
+    """Resolve coordinates locally without external network requests."""
 
-    def __init__(
-        self,
-        hass: HomeAssistant,
-        session: ClientSession,
-        entry_id: str,
-        endpoint: str,
-    ) -> None:
-        self._session = session
-        self._endpoint = validate_geocoding_url(endpoint)
-        public = self._endpoint == PUBLIC_NOMINATIM_URL
-        self._min_interval = PUBLIC_MIN_INTERVAL_SECONDS if public else CUSTOM_MIN_INTERVAL_SECONDS
-        self._hourly_limit = PUBLIC_REQUESTS_PER_HOUR if public else CUSTOM_REQUESTS_PER_HOUR
-        self._store = Store(hass, STORE_VERSION, f"lsa_saf.{entry_id}.place_cache")
-        self._cache: dict[str, dict[str, Any]] = {}
-        self._request_times: deque[datetime] = deque()
+    def __init__(self, hass: HomeAssistant, database_path: Path = DATABASE_PATH) -> None:
+        self._hass = hass
+        self._database_path = database_path
         self._lock = asyncio.Lock()
-        self._last_request_time = 0.0
-        self._backoff_until = 0.0
 
     async def async_setup(self) -> None:
-        """Load and prune the durable coordinate cache."""
-        stored = await self._store.async_load()
-        if isinstance(stored, dict) and isinstance(stored.get("entries"), dict):
-            self._cache = stored["entries"]
-            requests = stored.get("requests", [])
-            if not isinstance(requests, list):
-                requests = []
-            for value in requests:
-                try:
-                    timestamp = datetime.fromisoformat(str(value))
-                    self._request_times.append(
-                        timestamp if timestamp.tzinfo else timestamp.replace(tzinfo=UTC)
-                    )
-                except (TypeError, ValueError):
-                    continue
-        now = datetime.now(UTC)
-        self._prune_cache(now)
-        self._prune_request_times(now)
+        """Verify that the bundled database can be opened and has metadata."""
+        valid = await self._hass.async_add_executor_job(self._validate_database)
+        if not valid:
+            raise PlaceLookupError("The bundled GeoNames database is invalid")
 
     async def async_resolve(self, latitude: float, longitude: float) -> PlaceInfo:
-        """Resolve one coordinate, using cache before any network request."""
-        key = _cache_key(latitude, longitude)
-        now = datetime.now(UTC)
-        if cached := _cached_place(self._cache.get(key), now):
-            return cached
+        """Return the closest settlement without sending coordinates off-device."""
+        if not math.isfinite(latitude) or not -90 <= latitude <= 90:
+            raise PlaceLookupError("Latitude is outside the valid range")
+        if not math.isfinite(longitude) or not -180 <= longitude <= 180:
+            raise PlaceLookupError("Longitude is outside the valid range")
         async with self._lock:
-            now = datetime.now(UTC)
-            if cached := _cached_place(self._cache.get(key), now):
-                return cached
-            loop = asyncio.get_running_loop()
-            monotonic_now = loop.time()
-            if monotonic_now < self._backoff_until:
-                raise PlaceLookupRateLimited("Place-name service backoff is active")
-            self._prune_request_times(now)
-            if len(self._request_times) >= self._hourly_limit:
-                raise PlaceLookupRateLimited("Hourly place-name request limit reached")
-            delay = self._min_interval - (monotonic_now - self._last_request_time)
-            if delay > 0:
-                await asyncio.sleep(delay)
-            place = await self._async_request(latitude, longitude)
-            self._request_times.append(now)
-            self._cache[key] = {"resolved_at": now.isoformat(), "place": asdict(place)}
-            self._prune_cache(now)
-            await self._store.async_save(
-                {
-                    "entries": self._cache,
-                    "requests": [value.isoformat() for value in self._request_times],
-                }
+            result = await self._hass.async_add_executor_job(
+                self._resolve_sync, latitude, longitude
             )
-            return place
+        if result is None:
+            raise PlaceLookupError("No settlement was found")
+        name, _country_code, _distance_km = result
+        return PlaceInfo(
+            place_name=None,
+            nearest_settlement=name,
+            location_description=f"{name} közelében észlelt tűz",
+        )
 
-    async def _async_request(self, latitude: float, longitude: float) -> PlaceInfo:
-        loop = asyncio.get_running_loop()
+    def _connect(self) -> sqlite3.Connection:
+        uri = f"file:{self._database_path.as_posix()}?mode=ro&immutable=1"
+        return sqlite3.connect(uri, uri=True)
+
+    def _validate_database(self) -> bool:
         try:
-            async with self._session.get(
-                self._endpoint,
-                params={
-                    "format": "jsonv2",
-                    "lat": f"{latitude:.6f}",
-                    "lon": f"{longitude:.6f}",
-                    "zoom": "15",
-                    "addressdetails": "1",
-                    "layer": "address",
-                },
-                headers={
-                    "User-Agent": USER_AGENT,
-                    "Accept": "application/json",
-                    "Accept-Language": "hu,en;q=0.8",
-                },
-                allow_redirects=False,
-                timeout=GEOCODE_TIMEOUT,
-            ) as response:
-                self._last_request_time = loop.time()
-                if response.status == 429 or response.status >= 500:
-                    self._backoff_until = loop.time() + 3600
-                    raise PlaceLookupRateLimited("Place-name service requested a retry later")
-                if response.status != 200:
-                    self._backoff_until = loop.time() + 3600
-                    raise PlaceLookupError("Place-name service returned an error")
-                return parse_place_info(await _read_limited_json(response))
-        except PlaceLookupError:
-            raise
-        except (ClientError, TimeoutError) as err:
-            self._backoff_until = loop.time() + 300
-            raise PlaceLookupError("Place-name service is unavailable") from err
+            with self._connect() as connection:
+                row = connection.execute(
+                    "SELECT value FROM metadata WHERE key = 'source'"
+                ).fetchone()
+            return row == ("GeoNames cities500",)
+        except sqlite3.Error:
+            return False
 
-    def _prune_cache(self, now: datetime) -> None:
-        self._cache = {
-            key: value for key, value in self._cache.items() if _cache_entry_fresh(value, now)
-        }
-        if len(self._cache) > MAX_CACHE_ENTRIES:
-            ordered = sorted(
-                self._cache.items(),
-                key=lambda item: str(item[1].get("resolved_at", "")),
-                reverse=True,
-            )
-            self._cache = dict(ordered[:MAX_CACHE_ENTRIES])
-
-    def _prune_request_times(self, now: datetime) -> None:
-        while self._request_times and now - self._request_times[0] >= timedelta(hours=1):
-            self._request_times.popleft()
+    def _resolve_sync(
+        self, latitude: float, longitude: float
+    ) -> tuple[str, str, float] | None:
+        try:
+            with self._connect() as connection:
+                for radius_km in SEARCH_RADII_KM:
+                    candidates = _query_candidates(
+                        connection, latitude, longitude, radius_km
+                    )
+                    distances = [
+                                (
+                                    name,
+                                    country,
+                                    _haversine_km(latitude, longitude, lat, lon),
+                                )
+                        for lat, lon, name, country in candidates
+                    ]
+                    within_radius = [item for item in distances if item[2] <= radius_km]
+                    if within_radius:
+                        return min(within_radius, key=lambda item: item[2])
+        except sqlite3.Error as err:
+            raise PlaceLookupError("The bundled GeoNames database is unavailable") from err
+        return None
 
 
-async def _read_limited_json(response: Any) -> dict[str, Any]:
-    """Read a small JSON response without trusting Content-Length."""
-    if response.content_length is not None and response.content_length > MAX_RESPONSE_BYTES:
-        raise PlaceLookupError("Place-name response exceeds the safety limit")
-    payload = bytearray()
-    async for chunk in response.content.iter_chunked(8 * 1024):
-        payload.extend(chunk)
-        if len(payload) > MAX_RESPONSE_BYTES:
-            raise PlaceLookupError("Place-name response exceeds the safety limit")
-    try:
-        parsed = json.loads(payload)
-    except (UnicodeDecodeError, json.JSONDecodeError) as err:
-        raise PlaceLookupError("Place-name response is invalid") from err
-    if not isinstance(parsed, dict):
-        raise PlaceLookupError("Place-name response has an unexpected shape")
-    return parsed
-
-
-def parse_place_info(payload: dict[str, Any]) -> PlaceInfo:
-    """Extract a named location and nearest settlement from Nominatim JSON."""
-    address = payload.get("address")
-    if not isinstance(address, dict):
-        address = {}
-    settlement = _first_text(
-        address, "city", "town", "village", "municipality", "hamlet", "suburb", "county"
+def _query_candidates(
+    connection: sqlite3.Connection,
+    latitude: float,
+    longitude: float,
+    radius_km: float,
+) -> list[tuple[float, float, str, str]]:
+    """Read settlements from a conservative bounding box around a coordinate."""
+    latitude_delta = min(180.0, radius_km / 110.574)
+    cosine = max(0.01, abs(math.cos(math.radians(latitude))))
+    longitude_delta = min(180.0, radius_km / (111.320 * cosine))
+    south = max(-90.0, latitude - latitude_delta)
+    north = min(90.0, latitude + latitude_delta)
+    west = longitude - longitude_delta
+    east = longitude + longitude_delta
+    base = (
+        "SELECT latitude, longitude, name, country_code FROM places "
+        "WHERE latitude BETWEEN ? AND ? AND "
     )
-    feature_name = _clean_text(payload.get("name"))
-    if feature_name and settlement and feature_name.casefold() != settlement.casefold():
-        description = f"{feature_name} – tűz {settlement} közelében"
-    elif settlement:
-        description = f"{settlement} közelében észlelt tűz"
-    elif feature_name:
-        description = f"Tűz {feature_name} közelében"
+    if west < -180.0:
+        query = base + "(longitude >= ? OR longitude <= ?)"
+        params = (south, north, west + 360.0, east)
+    elif east > 180.0:
+        query = base + "(longitude >= ? OR longitude <= ?)"
+        params = (south, north, west, east - 360.0)
     else:
-        description = "Műholdas tűzdetektálás"
-    return PlaceInfo(feature_name, settlement, description)
+        query = base + "longitude BETWEEN ? AND ?"
+        params = (south, north, west, east)
+    return list(connection.execute(query, params))
 
 
-def _cache_key(latitude: float, longitude: float) -> str:
-    return f"{latitude:.3f},{longitude:.3f}"
-
-
-def _cache_entry_fresh(entry: Any, now: datetime) -> bool:
-    if not isinstance(entry, dict):
-        return False
-    try:
-        resolved = datetime.fromisoformat(str(entry["resolved_at"]))
-    except (KeyError, TypeError, ValueError):
-        return False
-    if resolved.tzinfo is None:
-        resolved = resolved.replace(tzinfo=UTC)
-    age = now - resolved
-    return timedelta(0) <= age <= CACHE_TTL
-
-
-def _cached_place(entry: Any, now: datetime) -> PlaceInfo | None:
-    if not _cache_entry_fresh(entry, now):
-        return None
-    place = entry.get("place")
-    if not isinstance(place, dict):
-        return None
-    description = _clean_text(place.get("location_description"))
-    if description is None:
-        return None
-    return PlaceInfo(
-        place_name=_clean_text(place.get("place_name")),
-        nearest_settlement=_clean_text(place.get("nearest_settlement")),
-        location_description=description,
-        attribution=_clean_text(place.get("attribution")) or NOMINATIM_ATTRIBUTION,
+def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    lat1_rad, lat2_rad = math.radians(lat1), math.radians(lat2)
+    d_lat = lat2_rad - lat1_rad
+    d_lon = math.radians(lon2 - lon1)
+    value = (
+        math.sin(d_lat / 2) ** 2
+        + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(d_lon / 2) ** 2
     )
-
-
-def _first_text(values: dict[str, Any], *keys: str) -> str | None:
-    for key in keys:
-        if text := _clean_text(values.get(key)):
-            return text
-    return None
-
-
-def _clean_text(value: Any) -> str | None:
-    if not isinstance(value, str):
-        return None
-    cleaned = " ".join(value.split())
-    return cleaned[:160] if cleaned else None
+    value = min(1.0, max(0.0, value))
+    return EARTH_RADIUS_KM * 2 * math.atan2(math.sqrt(value), math.sqrt(1 - value))

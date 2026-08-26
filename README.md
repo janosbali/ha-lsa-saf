@@ -68,22 +68,13 @@ hours_to_show: 24
 letter label. Clicking a marker shows the exact latitude and longitude together
 with all fire attributes.
 
-The integration options can also enable **Show nearby place names on the map**.
-When enabled, only each public satellite fire coordinate is sent to the
-OpenStreetMap Nominatim reverse-geocoding service. Home coordinates and LSA SAF
-credentials are never sent. Results are stored in a shared coordinate cache for
-90 days, requests are serialized, and polling is not blocked while names are
-resolved. The feature is disabled by default. Place data is © OpenStreetMap
-contributors, ODbL.
-
-The public Nominatim endpoint is intended only for small personal installations.
-It is limited to four requests per minute and 30 requests per hour per Home
-Assistant installation. It also applies automatic backoff after transport,
-rate-limit, or server errors. Deployments with many installations or many fires
-must configure their own HTTPS Nominatim-compatible `/reverse` endpoint in the
-integration options. Custom endpoints remain serialized and are capped at 240
-requests per hour per installation. Endpoint URLs cannot contain credentials,
-query strings, fragments, or non-HTTPS schemes.
+The integration resolves the nearest settlement locally from its bundled
+GeoNames `cities500` database. It sends no fire or Home coordinates to an
+external geocoding service, has no lookup quota, and remains available without
+internet access. Lookup runs outside Home Assistant's event loop and the
+database is opened read-only. Place data is provided by GeoNames under CC BY
+4.0. The feature is enabled by default and can be disabled in the integration
+options.
 
 ### Home Assistant bus event
 
@@ -196,6 +187,9 @@ MTFRPPixel is currently an LSA SAF demonstration product, so its availability or
 ## Data attribution
 
 LSA SAF products are provided by the **EUMETSAT Satellite Application Facility on Land Surface Analysis (LSA SAF)**. Follow the LSA SAF/EUMETSAT acknowledgement and licensing requirements when redistributing derived data or screenshots.
+
+Offline settlement names are derived from [GeoNames](https://www.geonames.org/)
+`cities500`, licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 
 ## License
 

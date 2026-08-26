@@ -14,7 +14,6 @@ from .api import LsaSafAuthError, LsaSafError
 from .const import (
     CONF_DEDUP_HOURS,
     CONF_DEDUP_RADIUS_KM,
-    CONF_GEOCODING_URL,
     CONF_MIN_CONFIDENCE,
     CONF_MIN_FRP_MW,
     CONF_PASSWORD,
@@ -24,7 +23,6 @@ from .const import (
     CONF_USERNAME,
     DEFAULT_DEDUP_HOURS,
     DEFAULT_DEDUP_RADIUS_KM,
-    DEFAULT_GEOCODING_URL,
     DEFAULT_MIN_CONFIDENCE,
     DEFAULT_MIN_FRP_MW,
     DEFAULT_RADIUS_KM,
@@ -34,7 +32,6 @@ from .const import (
     MAX_RADIUS_KM,
     MIN_RADIUS_KM,
 )
-from .geocoding import validate_geocoding_url
 from .products.fire import ActiveFireClient
 
 
@@ -147,16 +144,8 @@ class LsaSafOptionsFlow(OptionsFlowWithReload):
     """Handle LSA SAF integration options."""
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        errors: dict[str, str] = {}
         if user_input is not None:
-            try:
-                user_input[CONF_GEOCODING_URL] = validate_geocoding_url(
-                    user_input[CONF_GEOCODING_URL]
-                )
-            except ValueError:
-                errors[CONF_GEOCODING_URL] = "invalid_geocoding_url"
-            else:
-                return self.async_create_entry(data=user_input)
+            return self.async_create_entry(data=user_input)
 
         current = _default_options() | dict(self.config_entry.options)
         schema = vol.Schema(
@@ -180,13 +169,11 @@ class LsaSafOptionsFlow(OptionsFlowWithReload):
                     NumberSelectorConfig(min=1, max=48, step=1, unit_of_measurement="h", mode=NumberSelectorMode.BOX)
                 ),
                 vol.Required(CONF_RESOLVE_PLACE_NAMES): bool,
-                vol.Required(CONF_GEOCODING_URL): str,
             }
         )
         return self.async_show_form(
             step_id="init",
             data_schema=self.add_suggested_values_to_schema(schema, current),
-            errors=errors,
         )
 
 
@@ -199,5 +186,4 @@ def _default_options() -> dict[str, Any]:
         CONF_DEDUP_RADIUS_KM: DEFAULT_DEDUP_RADIUS_KM,
         CONF_DEDUP_HOURS: DEFAULT_DEDUP_HOURS,
         CONF_RESOLVE_PLACE_NAMES: DEFAULT_RESOLVE_PLACE_NAMES,
-        CONF_GEOCODING_URL: DEFAULT_GEOCODING_URL,
     }
