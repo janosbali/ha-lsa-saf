@@ -161,9 +161,10 @@ service for Europe. It creates:
 FRMv3 has five levels: low, moderate, high, very high and extreme. Because an
 exact Home coordinate can be an urban or otherwise non-burnable `nodata` pixel,
 the local sensor uses the nearest valid sample within 10 km. The area sensor
-separately reports the highest representative sample in the configured
-monitoring radius. This is a regional planning indicator, not a property-level
-prediction.
+separately scans the bounded FRMv3 raster inside the configured circular
+monitoring radius and reports its highest risk pixel. Image analysis happens
+locally and does not create additional point requests. This is a regional
+planning indicator, not a property-level prediction.
 
 The static Home Assistant map is annotated with its validity date, the Home
 position, prominent offline GeoNames settlements, country borders and a
@@ -205,6 +206,12 @@ Add `select.lsa_saf_fire_risk_forecast_day` beside the image to choose a named
 forecast day. Forecast data refreshes every 12 hours; generated map images are
 cached for one hour. Data is EUMETSAT / LSA SAF, CC BY 4.0; settlement labels
 are GeoNames, CC BY 4.0.
+
+To remain friendly to the public service at larger adoption levels, the raw map
+download is shared by the regional analysis and camera preview. Each Home
+Assistant installation also receives a stable, randomized offset within a
+one-hour window around the twelve-hour forecast refresh interval, preventing
+large groups of installations from keeping the same scheduled polling time.
 
 For a compact ten-day outlook, add a Markdown card and replace the entity ID if
 Home Assistant generated a different one:

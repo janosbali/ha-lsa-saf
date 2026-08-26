@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.2.5
+
+- Replace nine-point regional-risk sampling with an offline scan of the full
+  bounded FRMv3 map inside the configured circular monitoring radius.
+- Improve spatial coverage to roughly one sample per few kilometres while
+  reducing the typical WMS request count.
+- Share the one-hour raw map cache between risk analysis and the camera so
+  opening the preview does not repeat the same download.
+- Deterministically stagger each installation's twelve-hour refresh over a
+  one-hour window to avoid synchronized scheduled-polling load spikes.
+- Decode and analyze PNG data outside Home Assistant's event loop and retain
+  the existing response-size and image-dimension safety limits.
+
 ## 0.2.4
 
 - Overlay country borders on the static FRMv3 forecast map using a compact,

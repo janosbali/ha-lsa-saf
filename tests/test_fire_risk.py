@@ -10,10 +10,12 @@ import pytest
 
 from custom_components.lsa_saf.geocoding import MapPlace
 from custom_components.lsa_saf.map_render import COUNTRY_BORDERS, annotate_fire_risk_map
+from custom_components.lsa_saf.fire_risk_coordinator import _staggered_interval
 from custom_components.lsa_saf.products.fire_risk import (
     FireRiskClient,
     FireRiskError,
     _sample_points,
+    analyze_risk_map,
     map_bounds,
     parse_feature_info,
 )
@@ -65,7 +67,7 @@ def test_map_bounds_reject_invalid_radius(radius: float) -> None:
 
 
 @pytest.mark.asyncio
-async def test_forecast_separates_local_and_area_maximum() -> None:
+async def test_forecast_uses_local_value_as_safe_area_fallback() -> None:
     class FakeClient(FireRiskClient):
         def __init__(self) -> None:
             pass
@@ -78,13 +80,13 @@ async def test_forecast_separates_local_and_area_maximum() -> None:
     assert forecast.days[0].risk == "low"
     assert forecast.latitude == 47.5
     assert forecast.longitude == 19.0
-    assert forecast.area_risk == "extreme"
-    assert forecast.area_level == 5
+    assert forecast.area_risk == "low"
+    assert forecast.area_level == 1
     assert forecast.radius_km == 100
 
 
 @pytest.mark.asyncio
-async def test_area_risk_remains_available_when_home_area_is_nodata() -> None:
+async def test_local_forecast_remains_unknown_when_home_area_is_nodata() -> None:
     class FakeClient(FireRiskClient):
         def __init__(self) -> None:
             pass
@@ -97,7 +99,37 @@ async def test_area_risk_remains_available_when_home_area_is_nodata() -> None:
     forecast = await FakeClient().async_forecast(47.5, 19.0, 100)
 
     assert forecast.days[0].risk == "unknown"
-    assert forecast.area_risk == "high"
+    assert forecast.area_risk == "unknown"
+
+
+def test_map_analysis_finds_maximum_inside_circle() -> None:
+    source = BytesIO()
+    image = Image.new("RGB", (100, 100), (1, 230, 255))
+    image.putpixel((50, 50), (255, 245, 0))
+    image.putpixel((0, 0), (255, 3, 0))
+    image.save(source, format="PNG")
+
+    level, latitude, longitude = analyze_risk_map(
+        source.getvalue(), (14.0, 44.0, 24.0, 51.0), 47.5, 19.0, 100
+    )
+
+    assert level == 3
+    assert latitude == pytest.approx(47.46, abs=0.1)
+    assert longitude == pytest.approx(19.05, abs=0.1)
+
+
+@pytest.mark.parametrize("radius", [0, 501, float("nan"), float("inf")])
+def test_map_analysis_rejects_invalid_radius(radius: float) -> None:
+    with pytest.raises(FireRiskError):
+        analyze_risk_map(b"not-read", (14.0, 44.0, 24.0, 51.0), 47.5, 19.0, radius)
+
+
+def test_staggered_interval_is_deterministic_and_bounded() -> None:
+    first = _staggered_interval("entry-one")
+    second = _staggered_interval("entry-one")
+
+    assert first == second
+    assert 11.5 * 3600 <= first.total_seconds() <= 12.5 * 3600
 
 
 def test_map_annotation_adds_context_and_keeps_png() -> None:

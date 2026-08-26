@@ -3,12 +3,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
+from io import BytesIO
 import json
 import math
 import re
 from typing import Any
 
 from aiohttp import ClientError, ClientSession, ClientTimeout
+from PIL import Image, UnidentifiedImageError
 
 PRODUCT_ID = "FRMv3"
 LSA_ID = "LSA-504.3"
@@ -18,12 +20,19 @@ FORECAST_DAYS = 10
 TIMEOUT = ClientTimeout(total=20, connect=5, sock_read=15)
 MAX_JSON_BYTES = 32 * 1024
 MAX_MAP_BYTES = 2 * 1024 * 1024
-USER_AGENT = "ha-lsa-saf/0.2.4 (https://github.com/janosbali/ha-lsa-saf)"
+USER_AGENT = "ha-lsa-saf/0.2.5 (https://github.com/janosbali/ha-lsa-saf)"
 EUROPE_BOUNDS = (-9.975, 34.475, 45.525, 69.975)
 LOCAL_SAMPLE_RADIUS_KM = 10.0
 
 RISK_NAMES = {1: "low", 2: "moderate", 3: "high", 4: "very_high", 5: "extreme"}
 RISK_PATTERN = re.compile(r"^(?:[a-z_ ]+)\(([1-5])\)$", re.IGNORECASE)
+RISK_RGB = {
+    (1, 230, 255): 1,
+    (8, 248, 64): 2,
+    (255, 245, 0): 3,
+    (255, 129, 0): 4,
+    (255, 3, 0): 5,
+}
 
 
 class FireRiskError(Exception):
@@ -65,11 +74,14 @@ class FireRiskClient:
 
     def __init__(self, session: ClientSession) -> None:
         self._session = session
+        self._map_cache_key: tuple[tuple[float, float, float, float], date] | None = None
+        self._map_cache_value: bytes | None = None
+        self._map_cache_time: datetime | None = None
 
     async def async_forecast(
         self, latitude: float, longitude: float, radius_km: float
     ) -> FireRiskForecast:
-        """Retrieve a near-Home forecast and today's monitoring-area maximum."""
+        """Retrieve the near-Home forecast with a conservative area fallback."""
         _validate_coordinate(latitude, longitude)
         if not math.isfinite(radius_km) or not 1 <= radius_km <= 500:
             raise FireRiskError("Fire-risk radius is outside the valid range")
@@ -82,21 +94,6 @@ class FireRiskClient:
             if level is not None:
                 local = (sample_lat, sample_lon, level)
                 break
-        area_best = local
-        seen = (
-            {(round(local[0], 6), round(local[1], 6))}
-            if local is not None
-            else set()
-        )
-        for sample_lat, sample_lon in _sample_points(latitude, longitude, radius_km):
-            key = (round(sample_lat, 6), round(sample_lon, 6))
-            if key in seen:
-                continue
-            seen.add(key)
-            level = await self._async_point(sample_lat, sample_lon, dates[0])
-            if level is not None and (area_best is None or level > area_best[2]):
-                area_best = (sample_lat, sample_lon, level)
-
         if local is None:
             values = [None] * len(dates)
             local_latitude, local_longitude = latitude, longitude
@@ -105,9 +102,9 @@ class FireRiskClient:
             for valid_date in dates[1:]:
                 values.append(await self._async_point(local[0], local[1], valid_date))
             local_latitude, local_longitude = local[0], local[1]
-        area_latitude = area_best[0] if area_best else latitude
-        area_longitude = area_best[1] if area_best else longitude
-        area_level = area_best[2] if area_best else None
+        area_latitude = local[0] if local else latitude
+        area_longitude = local[1] if local else longitude
+        area_level = local[2] if local else None
         return FireRiskForecast(
             local_latitude, local_longitude, datetime.now(UTC),
             tuple(FireRiskDay(value, level) for value, level in zip(dates, values, strict=True)),
@@ -135,6 +132,14 @@ class FireRiskClient:
         west, south, east, north = bbox
         if not (west < east and south < north):
             raise FireRiskError("Invalid fire-risk map bounds")
+        key = (bbox, valid_date)
+        if (
+            self._map_cache_key == key
+            and self._map_cache_value is not None
+            and self._map_cache_time is not None
+            and datetime.now(UTC) - self._map_cache_time < timedelta(hours=1)
+        ):
+            return self._map_cache_value
         image = await self._async_get(
             {
                 "DATASET": WMS_DATASET, "SERVICE": "WMS", "VERSION": "1.1.1",
@@ -147,6 +152,9 @@ class FireRiskClient:
         )
         if not image.startswith(b"\x89PNG\r\n\x1a\n"):
             raise FireRiskError("FRMv3 map response is not a PNG image")
+        self._map_cache_key = key
+        self._map_cache_value = image
+        self._map_cache_time = datetime.now(UTC)
         return image
 
     async def _async_get(self, params: dict[str, str], limit: int) -> bytes:
@@ -183,6 +191,67 @@ def parse_feature_info(payload: bytes, valid_date: date) -> int | None:
     if not isinstance(raw, str) or not (match := RISK_PATTERN.fullmatch(raw.strip())):
         raise FireRiskError("FRMv3 response contains an unknown risk level")
     return int(match.group(1))
+
+
+def analyze_risk_map(
+    image_bytes: bytes,
+    bbox: tuple[float, float, float, float],
+    home_latitude: float,
+    home_longitude: float,
+    radius_km: float,
+) -> tuple[int | None, float, float]:
+    """Find the true maximum rendered risk inside the circular monitoring area."""
+    _validate_coordinate(home_latitude, home_longitude)
+    if not math.isfinite(radius_km) or not 1 <= radius_km <= 500:
+        raise FireRiskError("Fire-risk analysis radius is outside the valid range")
+    west, south, east, north = bbox
+    if not all(math.isfinite(value) for value in bbox) or not (
+        west < east and south < north
+    ):
+        raise FireRiskError("FRMv3 analysis bounds are invalid")
+    try:
+        with Image.open(BytesIO(image_bytes)) as source:
+            if source.format != "PNG" or source.width > 1024 or source.height > 1024:
+                raise FireRiskError("FRMv3 analysis image has unexpected dimensions")
+            source.load()
+            image = source.convert("RGB")
+    except (Image.DecompressionBombError, UnidentifiedImageError, OSError) as err:
+        raise FireRiskError("FRMv3 analysis image could not be decoded") from err
+
+    width, height = image.size
+    if width < 2 or height < 2:
+        raise FireRiskError("FRMv3 analysis image is too small")
+    cosine = max(0.2, abs(math.cos(math.radians(home_latitude))))
+    x_distances = tuple(
+        ((west + x / (width - 1) * (east - west) - home_longitude) * 111.320 * cosine)
+        ** 2
+        for x in range(0, width, 2)
+    )
+    y_distances = tuple(
+        ((north - y / (height - 1) * (north - south) - home_latitude) * 110.574)
+        ** 2
+        for y in range(0, height, 2)
+    )
+    radius_squared = radius_km * radius_km
+    pixels = image.load()
+    best_level: int | None = None
+    best_x = best_y = 0
+    for y_index, y in enumerate(range(0, height, 2)):
+        for x_index, x in enumerate(range(0, width, 2)):
+            if x_distances[x_index] + y_distances[y_index] > radius_squared:
+                continue
+            level = RISK_RGB.get(pixels[x, y])
+            if level is not None and (best_level is None or level > best_level):
+                best_level, best_x, best_y = level, x, y
+                if level == 5:
+                    break
+        if best_level == 5:
+            break
+    if best_level is None:
+        return None, home_latitude, home_longitude
+    latitude = north - best_y / (height - 1) * (north - south)
+    longitude = west + best_x / (width - 1) * (east - west)
+    return best_level, latitude, longitude
 
 
 def _forecast_dates(now: datetime) -> tuple[date, ...]:

@@ -189,6 +189,7 @@ class FireRiskAreaMaximumSensor(LsaSafFireRiskEntity, SensorEntity):
             "monitoring_radius_km": data.radius_km,
             "sample_latitude": data.area_latitude,
             "sample_longitude": data.area_longitude,
+            "sampling_method": "bounded_raster_scan",
             "valid_date": data.days[0].valid_date.isoformat(),
             "source_url": WMS_URL,
             "attribution": "EUMETSAT / LSA SAF, CC BY 4.0",
