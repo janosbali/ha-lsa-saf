@@ -10,7 +10,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import LsaSafConfigEntry
-from .entity import LsaSafEntity
+from .entity import LsaSafEntity, LsaSafFireRiskEntity
+from .products.fire_risk import WMS_URL
 
 
 async def async_setup_entry(
@@ -23,6 +24,7 @@ async def async_setup_entry(
             RawPixelCountSensor(entry),
             ProductTimeSensor(entry),
             ProductAgeSensor(entry),
+            FireRiskTodaySensor(entry),
         ]
     )
 
@@ -118,3 +120,39 @@ class ProductAgeSensor(LsaSafEntity, SensorEntity):
         if not self.coordinator.data:
             return None
         return max(0, (datetime.now(UTC) - self.coordinator.data.product_time).total_seconds() / 60)
+
+
+class FireRiskTodaySensor(LsaSafFireRiskEntity, SensorEntity):
+    """Current-day maximum sampled FRMv3 risk with the ten-day outlook."""
+
+    _attr_translation_key = "fire_risk_today"
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = ["low", "moderate", "high", "very_high", "extreme", "unknown"]
+    _attr_icon = "mdi:pine-tree-fire"
+
+    def __init__(self, entry: LsaSafConfigEntry) -> None:
+        super().__init__(entry)
+        self._attr_unique_id = f"{entry.entry_id}_fire_risk_today"
+
+    @property
+    def native_value(self) -> str:
+        data = self.coordinator.data
+        return data.days[0].risk if data and data.days else "unknown"
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        data = self.coordinator.data
+        if data is None:
+            return {"forecast": [], "attribution": "EUMETSAT / LSA SAF, CC BY 4.0"}
+        return {
+            "risk_level": data.days[0].level,
+            "sample_latitude": data.latitude,
+            "sample_longitude": data.longitude,
+            "generated_at": data.generated_at.isoformat(),
+            "forecast": [
+                {"date": day.valid_date.isoformat(), "risk": day.risk, "level": day.level}
+                for day in data.days
+            ],
+            "source_url": WMS_URL,
+            "attribution": "EUMETSAT / LSA SAF, CC BY 4.0",
+        }

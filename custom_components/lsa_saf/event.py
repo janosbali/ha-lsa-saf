@@ -6,14 +6,18 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import LsaSafConfigEntry
-from .const import EVENT_NEW_FIRE
-from .entity import LsaSafEntity
+from .const import (
+    BUS_EVENT_FIRE_RISK_INCREASE,
+    EVENT_FIRE_RISK_INCREASE,
+    EVENT_NEW_FIRE,
+)
+from .entity import LsaSafEntity, LsaSafFireRiskEntity
 
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: LsaSafConfigEntry, async_add_entities: AddConfigEntryEntitiesCallback
 ) -> None:
-    async_add_entities([NewFireEvent(entry)])
+    async_add_entities([NewFireEvent(entry), FireRiskIncreaseEvent(entry)])
 
 
 class NewFireEvent(LsaSafEntity, EventEntity):
@@ -36,4 +40,43 @@ class NewFireEvent(LsaSafEntity, EventEntity):
             for fire in data.new_fires:
                 self._trigger_event(EVENT_NEW_FIRE, fire)
                 self.async_write_ha_state()
+        super()._handle_coordinator_update()
+
+
+class FireRiskIncreaseEvent(LsaSafFireRiskEntity, EventEntity):
+    """Event raised when today's FRMv3 risk increases to high or worse."""
+
+    _attr_translation_key = "fire_risk_increase"
+    _attr_event_types = [EVENT_FIRE_RISK_INCREASE]
+    _attr_icon = "mdi:pine-tree-fire"
+
+    def __init__(self, entry: LsaSafConfigEntry) -> None:
+        LsaSafFireRiskEntity.__init__(self, entry)
+        self._attr_unique_id = f"{entry.entry_id}_fire_risk_increase"
+        data = self.coordinator.data
+        self._last_level = data.days[0].level if data and data.days else None
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        data = self.coordinator.data
+        level = data.days[0].level if data and data.days else None
+        previous = self._last_level
+        self._last_level = level
+        if (
+            level is not None
+            and previous is not None
+            and level >= 3
+            and level > previous
+        ):
+            event_data = {
+                "risk": data.days[0].risk,
+                "level": level,
+                "previous_level": previous,
+                "valid_date": data.days[0].valid_date.isoformat(),
+                "sample_latitude": data.latitude,
+                "sample_longitude": data.longitude,
+            }
+            self._trigger_event(EVENT_FIRE_RISK_INCREASE, event_data)
+            self.hass.bus.async_fire(BUS_EVENT_FIRE_RISK_INCREASE, event_data)
+            self.async_write_ha_state()
         super()._handle_coordinator_update()

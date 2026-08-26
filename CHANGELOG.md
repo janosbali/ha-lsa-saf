@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.0
+
+- Add the demonstration FRMv3 Fire Risk Map forecast for Europe.
+- Add a localized enum sensor for today's sampled fire risk and a ten-day forecast attribute.
+- Avoid urban `nodata` pixels by sampling Home and eight representative points within the monitoring radius.
+- Add a day 0–9 selector and a standard Home Assistant camera entity for the selected forecast map.
+- Add an event when today's risk rises to high, very high, or extreme.
+- Keep FRMv3 updates independent and non-blocking so an outage cannot stop active-fire monitoring.
+- Refresh risk data every 12 hours while caching map images for one hour.
+- Enforce HTTPS, reject redirects, and bound WMS JSON and PNG response sizes and timeouts.
+
 ## 0.1.9
 
 - Resolve the nearest settlement before publishing each new-fire event.

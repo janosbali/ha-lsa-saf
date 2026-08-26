@@ -6,7 +6,13 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import LsaSafConfigEntry
-from .const import CONF_RADIUS_KM, DEFAULT_RADIUS_KM, MAX_RADIUS_KM, MIN_RADIUS_KM
+from .const import (
+    CONF_RADIUS_KM,
+    DEFAULT_RADIUS_KM,
+    DOMAIN,
+    MAX_RADIUS_KM,
+    MIN_RADIUS_KM,
+)
 from .entity import LsaSafEntity
 
 
@@ -40,4 +46,9 @@ class MonitoringRadiusNumber(LsaSafEntity, NumberEntity):
         options[CONF_RADIUS_KM] = float(value)
         self.hass.config_entries.async_update_entry(self.entry, options=options)
         await self.coordinator.async_request_refresh()
+        self.entry.async_create_background_task(
+            self.hass,
+            self.entry.runtime_data.fire_risk_coordinator.async_request_refresh(),
+            f"{DOMAIN} refresh FRMv3 after radius change",
+        )
         self.async_write_ha_state()

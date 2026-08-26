@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "Kapcsolódás az LSA SAF Data Service-hez",
-        "description": "Add meg az ingyenes LSA SAF Data Service fiókod adatait. A v0.1.0 az MTG aktív tűzészlelést tartalmazza; az integráció további LSA SAF termékekkel bővíthető.",
+        "description": "Add meg az ingyenes LSA SAF Data Service fiókod adatait. Az integráció MTG aktívtűz-észlelést és FRMv3 tűzkockázati előrejelzést biztosít.",
         "data": {
           "username": "Felhasználónév",
           "password": "Jelszó"
@@ -78,11 +78,35 @@
       },
       "product_age": {
         "name": "Tűztermék kora"
+      },
+      "fire_risk_today": {
+        "name": "Tűzkockázati előrejelzés",
+        "state": {
+          "low": "Alacsony",
+          "moderate": "Mérsékelt",
+          "high": "Magas",
+          "very_high": "Nagyon magas",
+          "extreme": "Szélsőséges",
+          "unknown": "Ismeretlen"
+        }
       }
     },
     "event": {
       "new_fire": {
         "name": "Új aktív tűz"
+      },
+      "fire_risk_increase": {
+        "name": "Tűzkockázat emelkedése"
+      }
+    },
+    "select": {
+      "fire_risk_day": {
+        "name": "Tűzkockázati előrejelzés napja"
+      }
+    },
+    "camera": {
+      "fire_risk_map": {
+        "name": "Tűzkockázati előrejelzési térkép"
       }
     },
     "number": {

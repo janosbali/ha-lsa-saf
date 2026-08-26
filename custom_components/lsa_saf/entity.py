@@ -7,6 +7,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from . import LsaSafConfigEntry
 from .const import DOMAIN, NAME
 from .coordinator import LsaSafCoordinator
+from .fire_risk_coordinator import FireRiskCoordinator
 
 
 class LsaSafEntity(CoordinatorEntity[LsaSafCoordinator]):
@@ -23,4 +24,21 @@ class LsaSafEntity(CoordinatorEntity[LsaSafCoordinator]):
             manufacturer="EUMETSAT / LSA SAF",
             model="Satellite products",
             configuration_url="https://lsa-saf.eumetsat.int/en/data/products/",
+        )
+
+
+class LsaSafFireRiskEntity(CoordinatorEntity[FireRiskCoordinator]):
+    """Base entity for the daily FRMv3 product."""
+
+    _attr_has_entity_name = True
+
+    def __init__(self, entry: LsaSafConfigEntry) -> None:
+        super().__init__(entry.runtime_data.fire_risk_coordinator)
+        self.entry = entry
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, entry.entry_id)},
+            name=NAME,
+            manufacturer="EUMETSAT / LSA SAF",
+            model="Satellite products",
+            configuration_url="https://lsa-saf.eumetsat.int/en/data/map-service/",
         )

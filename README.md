@@ -15,13 +15,15 @@ LSA SAF exposes several related satellite products through the same ecosystem. T
 | Product | LSA SAF ID | Resolution / cadence | Integration status |
 |---|---|---|---|
 | MTG Fire Radiative Power Pixel | LSA-509 / MTFRPPIXEL | ~1 km / 10 min | **Implemented** |
-| Fire Risk Map v3 Forecast | FRMv3 | Europe / daily, day 0…9 | Architecture prepared; point sampling planned |
+| Fire Risk Map v3 Forecast | FRMv3 | Europe / daily, day 0…9 | **Implemented** |
 | MTG Land Surface Temperature | LSA-007 / MTLST | ~2 km / 10 min | Architecture prepared; NetCDF point extraction planned |
 | Evapotranspiration | LSA SAF ET family | product-dependent | Roadmap |
 | Solar radiation / fluxes | LSA SAF radiation family | product-dependent | Roadmap |
 | Vegetation metrics | NDVI/FVC/LAI/FAPAR/GPP | product-dependent | Roadmap |
 
-The first release deliberately enables only the product whose live file structure and parser have been validated: **MTG Active Fire Detection**. FRMv3 and MTLST metadata modules are already separated under `products/` so they can be added without changing the integration domain or repository later.
+The integration currently enables **MTG Active Fire Detection** and the public
+**FRMv3 Fire Risk Map** forecast. MTLST remains isolated under `products/` so it
+can be added later without changing the integration domain or repository.
 
 ## MTG Active Fire Detection
 
@@ -140,6 +142,37 @@ riasztás**, while other languages currently fall back to English. If place-name
 lookup is disabled or unavailable, the message safely falls back to distance
 from Home.
 
+## FRMv3 fire-risk forecast
+
+The integration also reads the public demonstration **FRMv3 Fire Risk Map v3**
+service for Europe. It creates:
+
+- a **Fire risk forecast** sensor for today, with all ten daily forecasts in
+  its `forecast` attribute;
+- a **Fire risk forecast day** selector (`0` for today through `9`);
+- a **Fire risk forecast map** camera showing the selected day;
+- a **Fire risk increase** event when today's level rises to high or worse.
+
+FRMv3 has five levels: low, moderate, high, very high and extreme. Because an
+exact Home coordinate can be an urban or otherwise non-burnable `nodata` pixel,
+the sensor samples Home and eight representative points within the monitoring
+radius and reports the highest available result. This is a regional planning
+indicator, not a property-level prediction.
+
+Example dashboard card:
+
+```yaml
+type: picture-entity
+entity: camera.lsa_saf_fire_risk_forecast_map
+camera_view: auto
+show_name: true
+show_state: false
+```
+
+Add `select.lsa_saf_fire_risk_forecast_day` beside the image to choose day
+0–9. Forecast data refreshes every 12 hours; generated map images are cached for
+one hour. Data is EUMETSAT / LSA SAF, CC BY 4.0.
+
 ## Architecture
 
 ```text
@@ -149,26 +182,23 @@ custom_components/lsa_saf/
 ├── config_flow.py
 ├── const.py
 ├── coordinator.py         # v0.1 active-fire coordinator
+├── fire_risk_coordinator.py
+├── camera.py              # selected FRMv3 forecast map
 ├── entity.py
 ├── sensor.py
 ├── event.py
 ├── geo_location.py       # live active-fire map markers
 ├── number.py
+├── select.py              # FRMv3 forecast day 0–9
 └── products/
     ├── fire.py            # MTFRPPixel parser + client (implemented)
-    ├── fire_risk.py       # FRMv3 product metadata / future module
+    ├── fire_risk.py       # bounded FRMv3 WMS client and parser
     └── lst.py             # MTLST product metadata / future module
 ```
 
 The domain is intentionally the generic `lsa_saf`, not `lsa_saf_mtg_fire`, so future products can be added to the same installed integration.
 
 ## Roadmap
-
-### v0.2
-
-- FRMv3 current-location fire-risk sensor
-- day 0–9 fire-risk forecast entities
-- optional high/extreme fire-risk binary sensor
 
 ### v0.3
 

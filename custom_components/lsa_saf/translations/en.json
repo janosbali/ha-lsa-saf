@@ -4,7 +4,7 @@
     "step": {
       "user": {
         "title": "Connect to LSA SAF Data Service",
-        "description": "Enter the credentials from your free LSA SAF Data Service account. MTG Active Fire Detection is currently enabled; the integration is structured for additional LSA SAF products.",
+        "description": "Enter the credentials from your free LSA SAF Data Service account. The integration provides MTG Active Fire Detection and the FRMv3 fire-risk forecast.",
         "data": {
           "username": "Username",
           "password": "Password"
@@ -78,11 +78,35 @@
       },
       "product_age": {
         "name": "Fire product age"
+      },
+      "fire_risk_today": {
+        "name": "Fire risk forecast",
+        "state": {
+          "low": "Low",
+          "moderate": "Moderate",
+          "high": "High",
+          "very_high": "Very high",
+          "extreme": "Extreme",
+          "unknown": "Unknown"
+        }
       }
     },
     "event": {
       "new_fire": {
         "name": "New active fire"
+      },
+      "fire_risk_increase": {
+        "name": "Fire risk increase"
+      }
+    },
+    "select": {
+      "fire_risk_day": {
+        "name": "Fire risk forecast day"
+      }
+    },
+    "camera": {
+      "fire_risk_map": {
+        "name": "Fire risk forecast map"
       }
     },
     "number": {
