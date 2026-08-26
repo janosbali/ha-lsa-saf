@@ -29,6 +29,7 @@ class RuntimeData:
     coordinator: LsaSafCoordinator
     fire_risk_coordinator: FireRiskCoordinator
     fire_risk_client: FireRiskClient
+    place_name_resolver: PlaceNameResolver | None
 
 
 type LsaSafConfigEntry = ConfigEntry[RuntimeData]
@@ -50,6 +51,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: LsaSafConfigEntry) -> bo
         coordinator=coordinator,
         fire_risk_coordinator=fire_risk_coordinator,
         fire_risk_client=fire_risk_client,
+        place_name_resolver=resolver,
     )
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_create_background_task(

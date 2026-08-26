@@ -25,6 +25,7 @@ async def async_setup_entry(
             ProductTimeSensor(entry),
             ProductAgeSensor(entry),
             FireRiskTodaySensor(entry),
+            FireRiskAreaMaximumSensor(entry),
         ]
     )
 
@@ -123,7 +124,7 @@ class ProductAgeSensor(LsaSafEntity, SensorEntity):
 
 
 class FireRiskTodaySensor(LsaSafFireRiskEntity, SensorEntity):
-    """Current-day maximum sampled FRMv3 risk with the ten-day outlook."""
+    """Near-Home FRMv3 risk with the ten-day outlook."""
 
     _attr_translation_key = "fire_risk_today"
     _attr_device_class = SensorDeviceClass.ENUM
@@ -146,6 +147,7 @@ class FireRiskTodaySensor(LsaSafFireRiskEntity, SensorEntity):
             return {"forecast": [], "attribution": "EUMETSAT / LSA SAF, CC BY 4.0"}
         return {
             "risk_level": data.days[0].level,
+            "scope": "near_home",
             "sample_latitude": data.latitude,
             "sample_longitude": data.longitude,
             "generated_at": data.generated_at.isoformat(),
@@ -153,6 +155,40 @@ class FireRiskTodaySensor(LsaSafFireRiskEntity, SensorEntity):
                 {"date": day.valid_date.isoformat(), "risk": day.risk, "level": day.level}
                 for day in data.days
             ],
+            "source_url": WMS_URL,
+            "attribution": "EUMETSAT / LSA SAF, CC BY 4.0",
+        }
+
+
+class FireRiskAreaMaximumSensor(LsaSafFireRiskEntity, SensorEntity):
+    """Highest sampled risk in the configured monitoring area."""
+
+    _attr_translation_key = "fire_risk_area_maximum"
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = ["low", "moderate", "high", "very_high", "extreme", "unknown"]
+    _attr_icon = "mdi:map-marker-alert"
+
+    def __init__(self, entry: LsaSafConfigEntry) -> None:
+        super().__init__(entry)
+        self._attr_unique_id = f"{entry.entry_id}_fire_risk_area_maximum"
+
+    @property
+    def native_value(self) -> str:
+        data = self.coordinator.data
+        return data.area_risk if data else "unknown"
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        data = self.coordinator.data
+        if data is None:
+            return {"attribution": "EUMETSAT / LSA SAF, CC BY 4.0"}
+        return {
+            "risk_level": data.area_level,
+            "scope": "monitoring_area",
+            "monitoring_radius_km": data.radius_km,
+            "sample_latitude": data.area_latitude,
+            "sample_longitude": data.area_longitude,
+            "valid_date": data.days[0].valid_date.isoformat(),
             "source_url": WMS_URL,
             "attribution": "EUMETSAT / LSA SAF, CC BY 4.0",
         }

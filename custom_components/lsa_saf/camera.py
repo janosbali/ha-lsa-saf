@@ -16,9 +16,12 @@ from .const import (
     DEFAULT_RADIUS_KM,
 )
 from .entity import LsaSafFireRiskEntity
+from .geocoding import PlaceLookupError
+from .map_render import annotate_fire_risk_map
 from .products.fire_risk import FireRiskError, map_bounds
 
 _LOGGER = logging.getLogger(__name__)
+INTERACTIVE_MAP_URL = "https://adaguc.lsasvcs.ipma.pt/"
 
 
 async def async_setup_entry(
@@ -66,6 +69,21 @@ class FireRiskMapCamera(LsaSafFireRiskEntity, Camera):
             image = await self.entry.runtime_data.fire_risk_client.async_map(
                 bbox, valid_date
             )
+            places = ()
+            if resolver := self.entry.runtime_data.place_name_resolver:
+                try:
+                    places = await resolver.async_map_places(bbox)
+                except PlaceLookupError as err:
+                    _LOGGER.debug("Could not add FRMv3 settlement labels: %s", err)
+            image = annotate_fire_risk_map(
+                image,
+                bbox,
+                float(self.hass.config.latitude),
+                float(self.hass.config.longitude),
+                valid_date,
+                places,
+                self.hass.config.language,
+            )
         except FireRiskError as err:
             _LOGGER.debug("Could not retrieve FRMv3 map: %s", err)
             return self._cached_image
@@ -73,3 +91,18 @@ class FireRiskMapCamera(LsaSafFireRiskEntity, Camera):
         self._cached_image = image
         self._cached_at = datetime.now(UTC)
         return image
+
+    @property
+    def extra_state_attributes(self) -> dict[str, str | int | float]:
+        day = int(self.entry.options.get(CONF_FIRE_RISK_DAY, DEFAULT_FIRE_RISK_DAY))
+        valid_date = datetime.now(UTC).date() + timedelta(days=day)
+        return {
+            "forecast_day": day,
+            "valid_date": valid_date.isoformat(),
+            "map_type": "annotated_static_preview",
+            "monitoring_radius_km": float(
+                self.entry.options.get(CONF_RADIUS_KM, DEFAULT_RADIUS_KM)
+            ),
+            "interactive_map_url": INTERACTIVE_MAP_URL,
+            "attribution": "EUMETSAT / LSA SAF, CC BY 4.0; GeoNames, CC BY 4.0",
+        }

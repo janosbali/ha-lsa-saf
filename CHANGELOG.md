@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.2.2
+
+- Separate near-Home fire risk from the highest sampled risk in the full
+  monitoring area so a large radius cannot be mistaken for property-level risk.
+- Add a dedicated monitoring-area maximum-risk sensor and clarify event scope.
+- Replace forecast-day values `0`–`9` with localized Today, Tomorrow, and
+  in-N-days labels while preserving stored configuration compatibility.
+- Annotate the FRMv3 map with its validity date, Home marker, prominent offline
+  GeoNames settlements, and a localized five-level color legend.
+- Expose a link to the official interactive LSA SAF ADAGUC WMS viewer without
+  adding another map provider, API key, or coordinate disclosure.
+- Remove expired fire markers from the entity registry at startup and detach
+  dynamic map markers from the LSA SAF device Controls list.
+- Add regression tests for local-versus-area risk and bounded PNG annotation.
+
 ## 0.2.1
 
 - Fix startup on current Home Assistant releases by deriving the FRMv3 map

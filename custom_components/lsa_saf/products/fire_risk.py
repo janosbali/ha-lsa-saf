@@ -18,8 +18,9 @@ FORECAST_DAYS = 10
 TIMEOUT = ClientTimeout(total=20, connect=5, sock_read=15)
 MAX_JSON_BYTES = 32 * 1024
 MAX_MAP_BYTES = 2 * 1024 * 1024
-USER_AGENT = "ha-lsa-saf/0.2.0 (https://github.com/janosbali/ha-lsa-saf)"
+USER_AGENT = "ha-lsa-saf/0.2.2 (https://github.com/janosbali/ha-lsa-saf)"
 EUROPE_BOUNDS = (-9.975, 34.475, 45.525, 69.975)
+LOCAL_SAMPLE_RADIUS_KM = 10.0
 
 RISK_NAMES = {1: "low", 2: "moderate", 3: "high", 4: "very_high", 5: "extreme"}
 RISK_PATTERN = re.compile(r"^(?:[a-z_ ]+)\(([1-5])\)$", re.IGNORECASE)
@@ -43,12 +44,20 @@ class FireRiskDay:
 
 @dataclass(frozen=True, slots=True)
 class FireRiskForecast:
-    """Ten-day forecast for one representative nearby land point."""
+    """Local ten-day forecast plus today's maximum in the monitoring area."""
 
     latitude: float
     longitude: float
     generated_at: datetime
     days: tuple[FireRiskDay, ...]
+    area_level: int | None
+    area_latitude: float
+    area_longitude: float
+    radius_km: float
+
+    @property
+    def area_risk(self) -> str:
+        return RISK_NAMES.get(self.area_level, "unknown")
 
 
 class FireRiskClient:
@@ -60,28 +69,49 @@ class FireRiskClient:
     async def async_forecast(
         self, latitude: float, longitude: float, radius_km: float
     ) -> FireRiskForecast:
-        """Find a nearby valid land pixel and retrieve its ten-day forecast."""
+        """Retrieve a near-Home forecast and today's monitoring-area maximum."""
         _validate_coordinate(latitude, longitude)
         if not math.isfinite(radius_km) or not 1 <= radius_km <= 500:
             raise FireRiskError("Fire-risk radius is outside the valid range")
         dates = _forecast_dates(datetime.now(UTC))
-        candidates = _sample_points(latitude, longitude, radius_km)
-        best: tuple[float, float, int] | None = None
-        for sample_lat, sample_lon in candidates:
+        local: tuple[float, float, int] | None = None
+        for sample_lat, sample_lon in _sample_points(
+            latitude, longitude, min(radius_km, LOCAL_SAMPLE_RADIUS_KM)
+        ):
             level = await self._async_point(sample_lat, sample_lon, dates[0])
-            if level is not None and (best is None or level > best[2]):
-                best = (sample_lat, sample_lon, level)
-        if best is None:
-            return FireRiskForecast(
-                latitude, longitude, datetime.now(UTC),
-                tuple(FireRiskDay(value, None) for value in dates),
-            )
-        values = [best[2]]
-        for valid_date in dates[1:]:
-            values.append(await self._async_point(best[0], best[1], valid_date))
+            if level is not None:
+                local = (sample_lat, sample_lon, level)
+                break
+        area_best = local
+        seen = (
+            {(round(local[0], 6), round(local[1], 6))}
+            if local is not None
+            else set()
+        )
+        for sample_lat, sample_lon in _sample_points(latitude, longitude, radius_km):
+            key = (round(sample_lat, 6), round(sample_lon, 6))
+            if key in seen:
+                continue
+            seen.add(key)
+            level = await self._async_point(sample_lat, sample_lon, dates[0])
+            if level is not None and (area_best is None or level > area_best[2]):
+                area_best = (sample_lat, sample_lon, level)
+
+        if local is None:
+            values = [None] * len(dates)
+            local_latitude, local_longitude = latitude, longitude
+        else:
+            values = [local[2]]
+            for valid_date in dates[1:]:
+                values.append(await self._async_point(local[0], local[1], valid_date))
+            local_latitude, local_longitude = local[0], local[1]
+        area_latitude = area_best[0] if area_best else latitude
+        area_longitude = area_best[1] if area_best else longitude
+        area_level = area_best[2] if area_best else None
         return FireRiskForecast(
-            best[0], best[1], datetime.now(UTC),
+            local_latitude, local_longitude, datetime.now(UTC),
             tuple(FireRiskDay(value, level) for value, level in zip(dates, values, strict=True)),
+            area_level, area_latitude, area_longitude, radius_km,
         )
 
     async def _async_point(self, latitude: float, longitude: float, valid_date: date) -> int | None:

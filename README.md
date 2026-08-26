@@ -147,17 +147,27 @@ from Home.
 The integration also reads the public demonstration **FRMv3 Fire Risk Map v3**
 service for Europe. It creates:
 
-- a **Fire risk forecast** sensor for today, with all ten daily forecasts in
+- a **Fire risk near Home** sensor for today, with all ten daily forecasts in
   its `forecast` attribute;
-- a **Fire risk forecast day** selector (`0` for today through `9`);
+- a separate **Highest fire risk in monitoring area** sensor;
+- a localized **Fire risk forecast day** selector (Today, Tomorrow, …);
 - a **Fire risk forecast map** camera showing the selected day;
-- a **Fire risk increase** event when today's level rises to high or worse.
+- a **Fire risk increase** event when the monitoring-area maximum rises to high
+  or worse.
 
 FRMv3 has five levels: low, moderate, high, very high and extreme. Because an
 exact Home coordinate can be an urban or otherwise non-burnable `nodata` pixel,
-the sensor samples Home and eight representative points within the monitoring
-radius and reports the highest available result. This is a regional planning
-indicator, not a property-level prediction.
+the local sensor uses the nearest valid sample within 10 km. The area sensor
+separately reports the highest representative sample in the configured
+monitoring radius. This is a regional planning indicator, not a property-level
+prediction.
+
+The static Home Assistant map is annotated with its validity date, the Home
+position, prominent offline GeoNames settlements and a localized color legend.
+For free pan, zoom, time navigation and layer opacity controls, open the
+[official LSA SAF ADAGUC viewer](https://adaguc.lsasvcs.ipma.pt/) and choose
+**MSG – FRMv3 – Fire Risk** under Add layers. This uses the product owner's
+viewer directly and needs no API key.
 
 Example dashboard card:
 
@@ -169,9 +179,10 @@ show_name: true
 show_state: false
 ```
 
-Add `select.lsa_saf_fire_risk_forecast_day` beside the image to choose day
-0–9. Forecast data refreshes every 12 hours; generated map images are cached for
-one hour. Data is EUMETSAT / LSA SAF, CC BY 4.0.
+Add `select.lsa_saf_fire_risk_forecast_day` beside the image to choose a named
+forecast day. Forecast data refreshes every 12 hours; generated map images are
+cached for one hour. Data is EUMETSAT / LSA SAF, CC BY 4.0; settlement labels
+are GeoNames, CC BY 4.0.
 
 ## Architecture
 

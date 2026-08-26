@@ -2,11 +2,16 @@
 from __future__ import annotations
 
 from datetime import date
+from io import BytesIO
 import json
 
+from PIL import Image
 import pytest
 
+from custom_components.lsa_saf.geocoding import MapPlace
+from custom_components.lsa_saf.map_render import annotate_fire_risk_map
 from custom_components.lsa_saf.products.fire_risk import (
+    FireRiskClient,
     FireRiskError,
     _sample_points,
     map_bounds,
@@ -57,3 +62,88 @@ def test_map_bounds_reject_location_outside_coverage() -> None:
 def test_map_bounds_reject_invalid_radius(radius: float) -> None:
     with pytest.raises(FireRiskError):
         map_bounds(47.5, 19.0, radius)
+
+
+@pytest.mark.asyncio
+async def test_forecast_separates_local_and_area_maximum() -> None:
+    class FakeClient(FireRiskClient):
+        def __init__(self) -> None:
+            pass
+
+        async def _async_point(self, latitude, longitude, valid_date):
+            return 1 if (latitude, longitude) == (47.5, 19.0) else 5
+
+    forecast = await FakeClient().async_forecast(47.5, 19.0, 100)
+
+    assert forecast.days[0].risk == "low"
+    assert forecast.latitude == 47.5
+    assert forecast.longitude == 19.0
+    assert forecast.area_risk == "extreme"
+    assert forecast.area_level == 5
+    assert forecast.radius_km == 100
+
+
+@pytest.mark.asyncio
+async def test_area_risk_remains_available_when_home_area_is_nodata() -> None:
+    class FakeClient(FireRiskClient):
+        def __init__(self) -> None:
+            pass
+
+        async def _async_point(self, latitude, longitude, valid_date):
+            if abs(latitude - 47.5) < 0.2 and abs(longitude - 19.0) < 0.2:
+                return None
+            return 3
+
+    forecast = await FakeClient().async_forecast(47.5, 19.0, 100)
+
+    assert forecast.days[0].risk == "unknown"
+    assert forecast.area_risk == "high"
+
+
+def test_map_annotation_adds_context_and_keeps_png() -> None:
+    source = BytesIO()
+    Image.new("RGB", (768, 512), "#10cfe0").save(source, format="PNG")
+
+    result = annotate_fire_risk_map(
+        source.getvalue(),
+        (14.0, 44.0, 24.0, 51.0),
+        47.5,
+        19.0,
+        date(2026, 8, 26),
+        (MapPlace(47.4979, 19.0402, "Budapest"),),
+        "hu",
+    )
+
+    assert result.startswith(b"\x89PNG\r\n\x1a\n")
+    with Image.open(BytesIO(result)) as image:
+        assert image.size == (768, 512)
+        assert image.getpixel((10, 10)) != (16, 207, 224)
+
+
+def test_map_annotation_rejects_unexpected_dimensions() -> None:
+    source = BytesIO()
+    Image.new("RGB", (1025, 1), "white").save(source, format="PNG")
+
+    with pytest.raises(FireRiskError):
+        annotate_fire_risk_map(
+            source.getvalue(),
+            (14.0, 44.0, 24.0, 51.0),
+            47.5,
+            19.0,
+            date(2026, 8, 26),
+            (),
+            "en",
+        )
+
+
+def test_map_annotation_rejects_invalid_bounds() -> None:
+    with pytest.raises(FireRiskError):
+        annotate_fire_risk_map(
+            b"not-read",
+            (24.0, 44.0, 14.0, 51.0),
+            47.5,
+            19.0,
+            date(2026, 8, 26),
+            (),
+            "en",
+        )

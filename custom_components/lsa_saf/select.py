@@ -9,6 +9,8 @@ from . import LsaSafConfigEntry
 from .const import CONF_FIRE_RISK_DAY, DEFAULT_FIRE_RISK_DAY
 from .entity import LsaSafFireRiskEntity
 
+DAY_OPTIONS = ("today", "tomorrow", *(f"in_{day}_days" for day in range(2, 10)))
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -22,7 +24,7 @@ class FireRiskForecastDaySelect(LsaSafFireRiskEntity, SelectEntity):
     """Choose which daily forecast the map camera displays."""
 
     _attr_translation_key = "fire_risk_day"
-    _attr_options = [str(day) for day in range(10)]
+    _attr_options = list(DAY_OPTIONS)
     _attr_icon = "mdi:calendar-range"
 
     def __init__(self, entry: LsaSafConfigEntry) -> None:
@@ -31,12 +33,13 @@ class FireRiskForecastDaySelect(LsaSafFireRiskEntity, SelectEntity):
 
     @property
     def current_option(self) -> str:
-        return str(self.entry.options.get(CONF_FIRE_RISK_DAY, DEFAULT_FIRE_RISK_DAY))
+        day = int(self.entry.options.get(CONF_FIRE_RISK_DAY, DEFAULT_FIRE_RISK_DAY))
+        return DAY_OPTIONS[day] if 0 <= day < len(DAY_OPTIONS) else DAY_OPTIONS[0]
 
     async def async_select_option(self, option: str) -> None:
         if option not in self.options:
             raise ValueError("Unsupported FRMv3 forecast day")
         options = dict(self.entry.options)
-        options[CONF_FIRE_RISK_DAY] = int(option)
+        options[CONF_FIRE_RISK_DAY] = DAY_OPTIONS.index(option)
         self.hass.config_entries.async_update_entry(self.entry, options=options)
         self.async_write_ha_state()

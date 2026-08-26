@@ -80,7 +80,18 @@
         "name": "Fire product age"
       },
       "fire_risk_today": {
-        "name": "Fire risk forecast",
+        "name": "Fire risk near Home",
+        "state": {
+          "low": "Low",
+          "moderate": "Moderate",
+          "high": "High",
+          "very_high": "Very high",
+          "extreme": "Extreme",
+          "unknown": "Unknown"
+        }
+      },
+      "fire_risk_area_maximum": {
+        "name": "Highest fire risk in monitoring area",
         "state": {
           "low": "Low",
           "moderate": "Moderate",
@@ -101,7 +112,19 @@
     },
     "select": {
       "fire_risk_day": {
-        "name": "Fire risk forecast day"
+        "name": "Fire risk forecast day",
+        "state": {
+          "today": "Today",
+          "tomorrow": "Tomorrow",
+          "in_2_days": "In 2 days",
+          "in_3_days": "In 3 days",
+          "in_4_days": "In 4 days",
+          "in_5_days": "In 5 days",
+          "in_6_days": "In 6 days",
+          "in_7_days": "In 7 days",
+          "in_8_days": "In 8 days",
+          "in_9_days": "In 9 days"
+        }
       }
     },
     "camera": {

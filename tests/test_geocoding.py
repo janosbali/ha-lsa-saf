@@ -68,6 +68,23 @@ async def test_rejects_missing_or_untrusted_database(hass, tmp_path: Path) -> No
         await resolver.async_setup()
 
 
+async def test_map_places_are_population_ranked_and_bounded(hass, tmp_path: Path) -> None:
+    database = tmp_path / "places.sqlite3"
+    _database(database)
+    resolver = PlaceNameResolver(hass, database)
+
+    places = await resolver.async_map_places((18.0, 46.0, 21.0, 48.0), limit=2)
+
+    assert [place.name for place in places] == ["Budapest", "Szeged"]
+
+
+async def test_map_places_reject_invalid_bounds(hass, tmp_path: Path) -> None:
+    resolver = PlaceNameResolver(hass, tmp_path / "unused.sqlite3")
+
+    with pytest.raises(PlaceLookupError):
+        await resolver.async_map_places((20.0, 46.0, 19.0, 48.0))
+
+
 def test_bounding_box_handles_date_line() -> None:
     connection = sqlite3.connect(":memory:")
     connection.execute(

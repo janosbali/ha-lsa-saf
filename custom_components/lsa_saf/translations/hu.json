@@ -80,7 +80,18 @@
         "name": "Tűztermék kora"
       },
       "fire_risk_today": {
-        "name": "Tűzkockázati előrejelzés",
+        "name": "Tűzkockázat az otthon közelében",
+        "state": {
+          "low": "Alacsony",
+          "moderate": "Mérsékelt",
+          "high": "Magas",
+          "very_high": "Nagyon magas",
+          "extreme": "Szélsőséges",
+          "unknown": "Ismeretlen"
+        }
+      },
+      "fire_risk_area_maximum": {
+        "name": "Legmagasabb tűzkockázat a figyelési körzetben",
         "state": {
           "low": "Alacsony",
           "moderate": "Mérsékelt",
@@ -101,7 +112,19 @@
     },
     "select": {
       "fire_risk_day": {
-        "name": "Tűzkockázati előrejelzés napja"
+        "name": "Tűzkockázati előrejelzés napja",
+        "state": {
+          "today": "Ma",
+          "tomorrow": "Holnap",
+          "in_2_days": "2 nap múlva",
+          "in_3_days": "3 nap múlva",
+          "in_4_days": "4 nap múlva",
+          "in_5_days": "5 nap múlva",
+          "in_6_days": "6 nap múlva",
+          "in_7_days": "7 nap múlva",
+          "in_8_days": "8 nap múlva",
+          "in_9_days": "9 nap múlva"
+        }
       }
     },
     "camera": {

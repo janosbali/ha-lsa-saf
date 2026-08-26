@@ -29,6 +29,15 @@ class PlaceInfo:
     attribution: str = GEONAMES_ATTRIBUTION
 
 
+@dataclass(frozen=True, slots=True)
+class MapPlace:
+    """One prominent settlement label for a forecast map."""
+
+    latitude: float
+    longitude: float
+    name: str
+
+
 class PlaceNameResolver:
     """Resolve coordinates locally without external network requests."""
 
@@ -61,6 +70,23 @@ class PlaceNameResolver:
             nearest_settlement=name,
             location_description=f"{name} közelében észlelt tűz",
         )
+
+    async def async_map_places(
+        self, bbox: tuple[float, float, float, float], limit: int = 12
+    ) -> tuple[MapPlace, ...]:
+        """Return a small population-ranked label set inside European bounds."""
+        west, south, east, north = bbox
+        if not (
+            all(math.isfinite(value) for value in bbox)
+            and -180 <= west < east <= 180
+            and -90 <= south < north <= 90
+            and 1 <= limit <= 20
+        ):
+            raise PlaceLookupError("Invalid map label bounds")
+        async with self._lock:
+            return await self._hass.async_add_executor_job(
+                self._map_places_sync, bbox, limit
+            )
 
     def _connect(self) -> sqlite3.Connection:
         uri = f"file:{self._database_path.as_posix()}?mode=ro&immutable=1"
@@ -99,6 +125,23 @@ class PlaceNameResolver:
         except sqlite3.Error as err:
             raise PlaceLookupError("The bundled GeoNames database is unavailable") from err
         return None
+
+    def _map_places_sync(
+        self, bbox: tuple[float, float, float, float], limit: int
+    ) -> tuple[MapPlace, ...]:
+        west, south, east, north = bbox
+        try:
+            with self._connect() as connection:
+                rows = connection.execute(
+                    "SELECT latitude, longitude, name FROM places "
+                    "WHERE latitude BETWEEN ? AND ? "
+                    "AND longitude BETWEEN ? AND ? "
+                    "ORDER BY population DESC LIMIT ?",
+                    (south, north, west, east, limit),
+                ).fetchall()
+        except sqlite3.Error as err:
+            raise PlaceLookupError("The bundled GeoNames database is unavailable") from err
+        return tuple(MapPlace(float(lat), float(lon), str(name)) for lat, lon, name in rows)
 
 
 def _query_candidates(

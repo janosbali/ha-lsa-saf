@@ -54,12 +54,12 @@ class FireRiskIncreaseEvent(LsaSafFireRiskEntity, EventEntity):
         LsaSafFireRiskEntity.__init__(self, entry)
         self._attr_unique_id = f"{entry.entry_id}_fire_risk_increase"
         data = self.coordinator.data
-        self._last_level = data.days[0].level if data and data.days else None
+        self._last_level = data.area_level if data else None
 
     @callback
     def _handle_coordinator_update(self) -> None:
         data = self.coordinator.data
-        level = data.days[0].level if data and data.days else None
+        level = data.area_level if data else None
         previous = self._last_level
         self._last_level = level
         if (
@@ -69,12 +69,14 @@ class FireRiskIncreaseEvent(LsaSafFireRiskEntity, EventEntity):
             and level > previous
         ):
             event_data = {
-                "risk": data.days[0].risk,
+                "risk": data.area_risk,
                 "level": level,
                 "previous_level": previous,
                 "valid_date": data.days[0].valid_date.isoformat(),
-                "sample_latitude": data.latitude,
-                "sample_longitude": data.longitude,
+                "scope": "monitoring_area",
+                "monitoring_radius_km": data.radius_km,
+                "sample_latitude": data.area_latitude,
+                "sample_longitude": data.area_longitude,
             }
             self._trigger_event(EVENT_FIRE_RISK_INCREASE, event_data)
             self.hass.bus.async_fire(BUS_EVENT_FIRE_RISK_INCREASE, event_data)

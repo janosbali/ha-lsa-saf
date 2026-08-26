@@ -6,6 +6,7 @@ from typing import Any, override
 from homeassistant.components.geo_location import GeolocationEvent
 from homeassistant.const import UnitOfLength
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import LsaSafConfigEntry
@@ -23,14 +24,34 @@ async def async_setup_entry(
     coordinator = entry.runtime_data.coordinator
     entities: dict[str, LsaSafFireLocation] = {}
 
-    @callback
-    def async_sync_entities() -> None:
+    def active_clusters() -> dict[str, FireCluster]:
         data = coordinator.data
-        active = {
+        return {
             cluster.track_id: cluster
             for cluster in (data.tracked_fires if data else [])
             if cluster.track_id is not None
         }
+
+    registry = er.async_get(hass)
+    active_unique_ids = {
+        f"{entry.entry_id}_fire_{track_id}" for track_id in active_clusters()
+    }
+    prefix = f"{entry.entry_id}_fire_"
+    for registry_entry in er.async_entries_for_config_entry(registry, entry.entry_id):
+        if (
+            registry_entry.domain != "geo_location"
+            or registry_entry.platform != DOMAIN
+            or not registry_entry.unique_id.startswith(prefix)
+        ):
+            continue
+        if registry_entry.unique_id not in active_unique_ids:
+            registry.async_remove(registry_entry.entity_id)
+        elif registry_entry.device_id is not None:
+            registry.async_update_entity(registry_entry.entity_id, device_id=None)
+
+    @callback
+    def async_sync_entities() -> None:
+        active = active_clusters()
 
         for track_id in entities.keys() - active.keys():
             entity = entities.pop(track_id)
@@ -62,6 +83,7 @@ class LsaSafFireLocation(LsaSafEntity, GeolocationEvent):
 
     def __init__(self, entry: LsaSafConfigEntry, cluster: FireCluster) -> None:
         super().__init__(entry)
+        self._attr_device_info = None
         if cluster.track_id is None:
             raise ValueError("A map entity requires a tracked fire cluster")
         self._cluster = cluster
