@@ -47,7 +47,8 @@
           "min_frp_mw": "Minimum fire radiative power",
           "scan_interval_minutes": "Check interval",
           "dedup_radius_km": "Same-fire matching radius",
-          "dedup_hours": "Same-fire memory"
+          "dedup_hours": "Same-fire memory",
+          "resolve_place_names": "Show nearby place names on the map"
         },
         "data_description": {
           "radius_km": "Only MTG fire detections within this distance of Home Assistant's Home location are considered.",
@@ -55,7 +56,8 @@
           "min_frp_mw": "Ignore detections weaker than this FRP in MW.",
           "scan_interval_minutes": "How often Home Assistant checks for a newer 10-minute MTG fire product.",
           "dedup_radius_km": "A detection near a recently seen fire is treated as the same fire and will not generate another new-fire event.",
-          "dedup_hours": "How long a recently seen fire suppresses repeat new-fire events in the same area."
+          "dedup_hours": "How long a recently seen fire suppresses repeat new-fire events in the same area.",
+          "resolve_place_names": "Look up public fire coordinates with OpenStreetMap Nominatim. Disabled by default; results are cached and requests are rate-limited."
         }
       }
     }

@@ -7,8 +7,15 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .const import CONF_PASSWORD, CONF_USERNAME, PLATFORMS
+from .const import (
+    CONF_PASSWORD,
+    CONF_RESOLVE_PLACE_NAMES,
+    CONF_USERNAME,
+    DEFAULT_RESOLVE_PLACE_NAMES,
+    PLATFORMS,
+)
 from .coordinator import LsaSafCoordinator
+from .geocoding import PlaceNameResolver
 from .products.fire import ActiveFireClient
 
 
@@ -26,7 +33,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: LsaSafConfigEntry) -> bo
     """Set up LSA SAF from a config entry."""
     session = async_get_clientsession(hass)
     client = ActiveFireClient(session, entry.data[CONF_USERNAME], entry.data[CONF_PASSWORD])
-    coordinator = LsaSafCoordinator(hass, entry, client)
+    resolver = (
+        PlaceNameResolver(session)
+        if entry.options.get(CONF_RESOLVE_PLACE_NAMES, DEFAULT_RESOLVE_PLACE_NAMES)
+        else None
+    )
+    coordinator = LsaSafCoordinator(hass, entry, client, resolver)
     await coordinator.async_config_entry_first_refresh()
     entry.runtime_data = RuntimeData(coordinator=coordinator)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)

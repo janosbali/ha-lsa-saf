@@ -19,6 +19,7 @@ from .const import (
     CONF_MIN_FRP_MW,
     CONF_PASSWORD,
     CONF_RADIUS_KM,
+    CONF_RESOLVE_PLACE_NAMES,
     CONF_SCAN_INTERVAL_MINUTES,
     CONF_USERNAME,
     DEFAULT_DEDUP_HOURS,
@@ -26,6 +27,7 @@ from .const import (
     DEFAULT_MIN_CONFIDENCE,
     DEFAULT_MIN_FRP_MW,
     DEFAULT_RADIUS_KM,
+    DEFAULT_RESOLVE_PLACE_NAMES,
     DEFAULT_SCAN_INTERVAL_MINUTES,
     DOMAIN,
     MAX_RADIUS_KM,
@@ -166,6 +168,7 @@ class LsaSafOptionsFlow(OptionsFlowWithReload):
                 vol.Required(CONF_DEDUP_HOURS): NumberSelector(
                     NumberSelectorConfig(min=1, max=48, step=1, unit_of_measurement="h", mode=NumberSelectorMode.BOX)
                 ),
+                vol.Required(CONF_RESOLVE_PLACE_NAMES): bool,
             }
         )
         return self.async_show_form(
@@ -182,4 +185,5 @@ def _default_options() -> dict[str, Any]:
         CONF_SCAN_INTERVAL_MINUTES: DEFAULT_SCAN_INTERVAL_MINUTES,
         CONF_DEDUP_RADIUS_KM: DEFAULT_DEDUP_RADIUS_KM,
         CONF_DEDUP_HOURS: DEFAULT_DEDUP_HOURS,
+        CONF_RESOLVE_PLACE_NAMES: DEFAULT_RESOLVE_PLACE_NAMES,
     }

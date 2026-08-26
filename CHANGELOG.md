@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.6
+
+- Support fire-icon markers through the Home Assistant map card's `label_mode: icon` setting.
+- Add optional OpenStreetMap Nominatim reverse geocoding for fire coordinates.
+- Display a named feature and/or nearest settlement in each fire marker popup.
+- Keep reverse geocoding disabled by default and never send Home coordinates or credentials.
+- Cache place results per fire track, limit lookups to four per minute, reject redirects, and bound response time and size.
+- Add tests for place-name parsing, sanitization, map attributes, and malformed or oversized responses.
+
 ## 0.1.5
 
 - Add native Home Assistant `geo_location` entities for every active fire cluster.

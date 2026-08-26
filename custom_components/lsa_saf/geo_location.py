@@ -66,12 +66,13 @@ class LsaSafFireLocation(LsaSafEntity, GeolocationEvent):
             raise ValueError("A map entity requires a tracked fire cluster")
         self._cluster = cluster
         self._attr_unique_id = f"{entry.entry_id}_fire_{cluster.track_id}"
-        self._attr_name = f"Fire detection {cluster.track_id[:6]}"
+        self._attr_name = cluster.location_description or f"Fire detection {cluster.track_id[:6]}"
 
     @callback
     def set_cluster(self, cluster: FireCluster) -> None:
         """Replace this entity's current cluster data."""
         self._cluster = cluster
+        self._attr_name = cluster.location_description or f"Fire detection {cluster.track_id[:6]}"
 
     @property
     @override

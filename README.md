@@ -59,9 +59,22 @@ use this YAML configuration:
 ```yaml
 type: map
 geo_location_sources:
-  - lsa_saf
+  - source: lsa_saf
+    label_mode: icon
 hours_to_show: 24
 ```
+
+`label_mode: icon` displays the integration's fire icon instead of the `LSF`
+letter label. Clicking a marker shows the exact latitude and longitude together
+with all fire attributes.
+
+The integration options can also enable **Show nearby place names on the map**.
+When enabled, only each public satellite fire coordinate is sent to the
+OpenStreetMap Nominatim reverse-geocoding service. Home coordinates and LSA SAF
+credentials are never sent. Results are stored with the fire track, requests are
+limited to four per minute, and polling is not blocked while names are resolved.
+The feature is disabled by default. Place data is © OpenStreetMap contributors,
+ODbL.
 
 ### Home Assistant bus event
 

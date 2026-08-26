@@ -6,6 +6,10 @@ from types import SimpleNamespace
 from unittest.mock import Mock
 
 from custom_components.lsa_saf.const import (
+    ATTR_LATITUDE,
+    ATTR_LOCATION_DESCRIPTION,
+    ATTR_LONGITUDE,
+    ATTR_NEAREST_SETTLEMENT,
     ATTR_PEAK_FRP_MW,
     ATTR_PRODUCT_TIME,
     ATTR_SOURCE_URL,
@@ -77,13 +81,28 @@ def test_map_entity_exposes_location_distance_and_details() -> None:
 def test_map_entity_updates_existing_track_without_changing_identity() -> None:
     entity = _entity(_cluster())
     entity.async_write_ha_state = Mock()
-    updated = _cluster(latitude=46.5, longitude=20.5, distance_km=31.0, frp_mw=60.0)
+    updated = _cluster(
+        latitude=46.5,
+        longitude=20.5,
+        distance_km=31.0,
+        frp_mw=60.0,
+        nearest_settlement="Szeged",
+        location_description="Szeged közelében észlelt tűz",
+    )
 
     entity.set_cluster(updated)
 
     assert entity.latitude == 46.5
     assert entity.longitude == 20.5
     assert entity.distance == 31.0
+    assert entity.name == "Szeged közelében észlelt tűz"
+    assert entity.extra_state_attributes[ATTR_LATITUDE] == 46.5
+    assert entity.extra_state_attributes[ATTR_LONGITUDE] == 20.5
+    assert entity.extra_state_attributes[ATTR_NEAREST_SETTLEMENT] == "Szeged"
+    assert (
+        entity.extra_state_attributes[ATTR_LOCATION_DESCRIPTION]
+        == "Szeged közelében észlelt tűz"
+    )
 
 
 def test_recent_tracks_become_separate_map_markers() -> None:

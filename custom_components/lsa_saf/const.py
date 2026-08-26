@@ -16,6 +16,7 @@ CONF_MIN_FRP_MW = "min_frp_mw"
 CONF_SCAN_INTERVAL_MINUTES = "scan_interval_minutes"
 CONF_DEDUP_RADIUS_KM = "dedup_radius_km"
 CONF_DEDUP_HOURS = "dedup_hours"
+CONF_RESOLVE_PLACE_NAMES = "resolve_place_names"
 
 PRODUCT_ACTIVE_FIRE = "active_fire"
 PRODUCT_FIRE_RISK = "fire_risk"
@@ -31,6 +32,7 @@ DEFAULT_MIN_FRP_MW = 0.0
 DEFAULT_SCAN_INTERVAL_MINUTES = 5
 DEFAULT_DEDUP_RADIUS_KM = 3.0
 DEFAULT_DEDUP_HOURS = 6
+DEFAULT_RESOLVE_PLACE_NAMES = False
 MIN_RADIUS_KM = 1.0
 MAX_RADIUS_KM = 500.0
 DEFAULT_UPDATE_INTERVAL = timedelta(minutes=DEFAULT_SCAN_INTERVAL_MINUTES)
@@ -51,3 +53,7 @@ ATTR_TRACK_ID = "track_id"
 ATTR_SOURCE_URL = "source_url"
 ATTR_PRODUCT_TIME = "product_time"
 ATTR_PEAK_FRP_MW = "peak_frp_mw"
+ATTR_PLACE_NAME = "place_name"
+ATTR_NEAREST_SETTLEMENT = "nearest_settlement"
+ATTR_LOCATION_DESCRIPTION = "location_description"
+ATTR_PLACE_ATTRIBUTION = "place_attribution"

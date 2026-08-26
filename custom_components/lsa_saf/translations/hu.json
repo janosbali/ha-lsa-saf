@@ -47,7 +47,8 @@
           "min_frp_mw": "Minimális tűzsugárzási teljesítmény",
           "scan_interval_minutes": "Ellenőrzési gyakoriság",
           "dedup_radius_km": "Azonos tűz illesztési sugara",
-          "dedup_hours": "Azonos tűz megjegyzési ideje"
+          "dedup_hours": "Azonos tűz megjegyzési ideje",
+          "resolve_place_names": "Közeli helynevek megjelenítése a térképen"
         },
         "data_description": {
           "radius_km": "Csak a Home Assistant Otthon helyétől ezen a távolságon belüli MTG tűzészlelések számítanak.",
@@ -55,7 +56,8 @@
           "min_frp_mw": "Az ennél gyengébb FRP-jű észlelések figyelmen kívül maradnak.",
           "scan_interval_minutes": "Milyen gyakran ellenőrizze a Home Assistant az új 10 perces MTG tűzterméket.",
           "dedup_radius_km": "A közelmúltban látott tűzhöz közeli észlelés ugyanannak a tűznek számít, így nem keletkezik új esemény.",
-          "dedup_hours": "Ennyi ideig nyomja el az azonos helyen jelentkező ismételt új-tűz eseményt."
+          "dedup_hours": "Ennyi ideig nyomja el az azonos helyen jelentkező ismételt új-tűz eseményt.",
+          "resolve_place_names": "A nyilvános tűzkoordináták helynevét az OpenStreetMap Nominatim szolgáltatással keresi meg. Alapból kikapcsolt; az eredményeket gyorsítótárazza, a lekéréseket pedig korlátozza."
         }
       }
     }

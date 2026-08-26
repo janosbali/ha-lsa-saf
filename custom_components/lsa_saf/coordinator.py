@@ -22,6 +22,10 @@ from .const import (
     ATTR_FRP_MW,
     ATTR_LATITUDE,
     ATTR_LONGITUDE,
+    ATTR_LOCATION_DESCRIPTION,
+    ATTR_NEAREST_SETTLEMENT,
+    ATTR_PLACE_ATTRIBUTION,
+    ATTR_PLACE_NAME,
     ATTR_PEAK_FRP_MW,
     ATTR_PIXEL_COUNT,
     ATTR_PRODUCT_TIME,
@@ -42,6 +46,7 @@ from .const import (
     DEFAULT_SCAN_INTERVAL_MINUTES,
     DOMAIN,
 )
+from .geocoding import PlaceLookupError, PlaceNameResolver
 
 _LOGGER = logging.getLogger(__name__)
 STORE_VERSION = 1
@@ -60,6 +65,10 @@ class FireCluster:
     pixel_count: int
     track_id: str | None = None
     peak_frp_mw: float | None = None
+    place_name: str | None = None
+    nearest_settlement: str | None = None
+    location_description: str | None = None
+    place_attribution: str | None = None
 
     def attrs(self) -> dict[str, Any]:
         attrs = {
@@ -75,6 +84,14 @@ class FireCluster:
             attrs[ATTR_TRACK_ID] = self.track_id
         if self.peak_frp_mw is not None:
             attrs[ATTR_PEAK_FRP_MW] = round(self.peak_frp_mw, 2)
+        if self.place_name is not None:
+            attrs[ATTR_PLACE_NAME] = self.place_name
+        if self.nearest_settlement is not None:
+            attrs[ATTR_NEAREST_SETTLEMENT] = self.nearest_settlement
+        if self.location_description is not None:
+            attrs[ATTR_LOCATION_DESCRIPTION] = self.location_description
+        if self.place_attribution is not None:
+            attrs[ATTR_PLACE_ATTRIBUTION] = self.place_attribution
         return attrs
 
 
@@ -94,13 +111,21 @@ class CoordinatorData:
 class LsaSafCoordinator(DataUpdateCoordinator[CoordinatorData]):
     """Fetch, filter, cluster, and deduplicate MTG fire detections."""
 
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry, client: ActiveFireClient) -> None:
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        entry: ConfigEntry,
+        client: ActiveFireClient,
+        place_resolver: PlaceNameResolver | None = None,
+    ) -> None:
         self.entry = entry
         self.client = client
         self._store = Store(hass, STORE_VERSION, f"{DOMAIN}.{entry.entry_id}.tracks")
         self._tracks: list[dict[str, Any]] = []
         self._store_loaded = False
         self._initialized = False
+        self._place_resolver = place_resolver
+        self._pending_place_ids: set[str] = set()
         super().__init__(
             hass,
             _LOGGER,
@@ -207,6 +232,10 @@ class LsaSafCoordinator(DataUpdateCoordinator[CoordinatorData]):
         if changed and self._store_loaded:
             await self._store.async_save({"initialized": self._initialized, "tracks": self._tracks})
 
+        if self._place_resolver is not None:
+            for track in self._tracks:
+                self._schedule_place_lookup(track)
+
         return CoordinatorData(
             product_time=product.product_time,
             source_url=product.url,
@@ -216,6 +245,62 @@ class LsaSafCoordinator(DataUpdateCoordinator[CoordinatorData]):
             new_fires=new_fires,
             raw_pixels_in_radius=len(filtered),
         )
+
+    def _schedule_place_lookup(self, track: dict[str, Any]) -> None:
+        """Schedule one cached background lookup for an unresolved track."""
+        track_id = str(track.get("track_id", ""))
+        if (
+            not track_id
+            or track_id in self._pending_place_ids
+            or track.get("location_description")
+        ):
+            return
+        try:
+            latitude = float(track["latitude"])
+            longitude = float(track["longitude"])
+        except (KeyError, TypeError, ValueError):
+            return
+        self._pending_place_ids.add(track_id)
+        self.entry.async_create_background_task(
+            self.hass,
+            self._async_resolve_place(track_id, latitude, longitude),
+            f"{DOMAIN} reverse geocode {track_id}",
+        )
+
+    async def _async_resolve_place(
+        self, track_id: str, latitude: float, longitude: float
+    ) -> None:
+        """Resolve and persist a human-readable location for one fire."""
+        try:
+            if self._place_resolver is None:
+                return
+            place = await self._place_resolver.async_resolve(latitude, longitude)
+            track = next(
+                (item for item in self._tracks if item.get("track_id") == track_id),
+                None,
+            )
+            if track is None:
+                return
+            track["place_name"] = place.place_name
+            track["nearest_settlement"] = place.nearest_settlement
+            track["location_description"] = place.location_description
+            track["place_attribution"] = place.attribution
+            await self._store.async_save(
+                {"initialized": self._initialized, "tracks": self._tracks}
+            )
+            if self.data:
+                for cluster in self.data.tracked_fires:
+                    if cluster.track_id == track_id:
+                        cluster.place_name = place.place_name
+                        cluster.nearest_settlement = place.nearest_settlement
+                        cluster.location_description = place.location_description
+                        cluster.place_attribution = place.attribution
+                        self.async_set_updated_data(self.data)
+                        break
+        except PlaceLookupError as err:
+            _LOGGER.debug("Could not resolve place name for fire %s: %s", track_id, err)
+        finally:
+            self._pending_place_ids.discard(track_id)
 
 
 def _tracked_fire_clusters(
@@ -247,9 +332,17 @@ def _tracked_fire_clusters(
                 pixel_count=pixel_count,
                 track_id=track_id,
                 peak_frp_mw=peak_frp_mw,
+                place_name=_optional_text(track.get("place_name")),
+                nearest_settlement=_optional_text(track.get("nearest_settlement")),
+                location_description=_optional_text(track.get("location_description")),
+                place_attribution=_optional_text(track.get("place_attribution")),
             )
         )
     return sorted(result, key=lambda cluster: cluster.distance_km)
+
+
+def _optional_text(value: Any) -> str | None:
+    return value if isinstance(value, str) and value else None
 
 
 def _cluster_pixels(
