@@ -7,6 +7,8 @@
 - Initialize both the coordinator and camera base classes explicitly and serve
   forecast images with the correct `image/png` content type.
 - Add a regression test that imports every declared integration platform.
+- Install Home Assistant's pinned camera dependency in the test environment so
+  the camera platform is exercised during CI.
 
 ## 0.2.0
 
