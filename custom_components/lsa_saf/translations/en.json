@@ -43,6 +43,7 @@
         "title": "Active fire monitoring options",
         "data": {
           "radius_km": "Monitoring radius",
+          "fire_risk_radius_km": "Fire-risk forecast radius",
           "min_confidence": "Minimum fire confidence",
           "min_frp_mw": "Minimum fire radiative power",
           "scan_interval_minutes": "Check interval",
@@ -52,6 +53,7 @@
         },
         "data_description": {
           "radius_km": "Only MTG fire detections within this distance of Home Assistant's Home location are considered.",
+          "fire_risk_radius_km": "Area shown on the FRMv3 map and checked for the highest regional fire risk. This does not change active-fire alerts.",
           "min_confidence": "0 includes all detections; 1 is the strictest possible filter.",
           "min_frp_mw": "Ignore detections weaker than this FRP in MW.",
           "scan_interval_minutes": "How often Home Assistant checks for a newer 10-minute MTG fire product.",
@@ -100,6 +102,9 @@
           "extreme": "Extreme",
           "unknown": "Unknown"
         }
+      },
+      "fire_risk_update": {
+        "name": "Latest fire-risk forecast update"
       }
     },
     "event": {
@@ -135,6 +140,9 @@
     "number": {
       "monitoring_radius": {
         "name": "Active fire monitoring radius"
+      },
+      "fire_risk_radius": {
+        "name": "Fire-risk forecast radius"
       }
     }
   }

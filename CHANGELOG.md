@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.3
+
+- Make the official interactive FRMv3 viewer directly accessible from the LSA
+  SAF device page and document a one-tap dashboard button.
+- Separate the active-fire alert radius from the fire-risk forecast/map radius,
+  while retaining the previous radius for upgraded installations until the new
+  control is changed.
+- Add a forecast-update timestamp sensor with availability, validity range,
+  forecast length, and next planned refresh metadata.
+- Add a ready-to-copy ten-day dashboard forecast and interactive-map layout.
+- Update English and Hungarian names and descriptions for the new controls.
+
 ## 0.2.2
 
 - Separate near-Home fire risk from the highest sampled risk in the full

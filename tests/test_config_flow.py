@@ -12,6 +12,7 @@ from custom_components.lsa_saf.api import LsaSafAuthError, LsaSafError
 from custom_components.lsa_saf.const import (
     CONF_DEDUP_HOURS,
     CONF_DEDUP_RADIUS_KM,
+    CONF_FIRE_RISK_RADIUS_KM,
     CONF_MIN_CONFIDENCE,
     CONF_MIN_FRP_MW,
     CONF_PASSWORD,
@@ -21,6 +22,7 @@ from custom_components.lsa_saf.const import (
     CONF_USERNAME,
     DEFAULT_DEDUP_HOURS,
     DEFAULT_DEDUP_RADIUS_KM,
+    DEFAULT_FIRE_RISK_RADIUS_KM,
     DEFAULT_MIN_CONFIDENCE,
     DEFAULT_MIN_FRP_MW,
     DEFAULT_RADIUS_KM,
@@ -67,6 +69,7 @@ async def test_user_flow_success(hass, mock_test_auth: AsyncMock) -> None:
     assert result["data"] == {CONF_USERNAME: USERNAME, CONF_PASSWORD: PASSWORD}
     assert result["options"] == {
         CONF_RADIUS_KM: DEFAULT_RADIUS_KM,
+        CONF_FIRE_RISK_RADIUS_KM: DEFAULT_FIRE_RISK_RADIUS_KM,
         CONF_MIN_CONFIDENCE: DEFAULT_MIN_CONFIDENCE,
         CONF_MIN_FRP_MW: DEFAULT_MIN_FRP_MW,
         CONF_SCAN_INTERVAL_MINUTES: DEFAULT_SCAN_INTERVAL_MINUTES,
@@ -243,6 +246,7 @@ async def test_options_flow_defaults_and_save(hass) -> None:
 
     new_options = {
         CONF_RADIUS_KM: 100.0,
+        CONF_FIRE_RISK_RADIUS_KM: 250.0,
         CONF_MIN_CONFIDENCE: 0.5,
         CONF_MIN_FRP_MW: 10.0,
         CONF_SCAN_INTERVAL_MINUTES: 10.0,
@@ -262,6 +266,7 @@ async def test_options_flow_uses_existing_values(hass) -> None:
     """Test options flow presents existing values rather than resetting defaults."""
     existing_options = {
         CONF_RADIUS_KM: 75.0,
+        CONF_FIRE_RISK_RADIUS_KM: 150.0,
         CONF_MIN_CONFIDENCE: 0.75,
         CONF_MIN_FRP_MW: 20.0,
         CONF_SCAN_INTERVAL_MINUTES: 7.0,

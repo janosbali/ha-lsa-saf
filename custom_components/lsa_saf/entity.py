@@ -23,7 +23,7 @@ class LsaSafEntity(CoordinatorEntity[LsaSafCoordinator]):
             name=NAME,
             manufacturer="EUMETSAT / LSA SAF",
             model="Satellite products",
-            configuration_url="https://lsa-saf.eumetsat.int/en/data/products/",
+            configuration_url="https://adaguc.lsasvcs.ipma.pt/",
         )
 
 
@@ -40,5 +40,5 @@ class LsaSafFireRiskEntity(CoordinatorEntity[FireRiskCoordinator]):
             name=NAME,
             manufacturer="EUMETSAT / LSA SAF",
             model="Satellite products",
-            configuration_url="https://lsa-saf.eumetsat.int/en/data/map-service/",
+            configuration_url="https://adaguc.lsasvcs.ipma.pt/",
         )

@@ -14,6 +14,7 @@ from .api import LsaSafAuthError, LsaSafError
 from .const import (
     CONF_DEDUP_HOURS,
     CONF_DEDUP_RADIUS_KM,
+    CONF_FIRE_RISK_RADIUS_KM,
     CONF_MIN_CONFIDENCE,
     CONF_MIN_FRP_MW,
     CONF_PASSWORD,
@@ -23,6 +24,7 @@ from .const import (
     CONF_USERNAME,
     DEFAULT_DEDUP_HOURS,
     DEFAULT_DEDUP_RADIUS_KM,
+    DEFAULT_FIRE_RISK_RADIUS_KM,
     DEFAULT_MIN_CONFIDENCE,
     DEFAULT_MIN_FRP_MW,
     DEFAULT_RADIUS_KM,
@@ -153,6 +155,9 @@ class LsaSafOptionsFlow(OptionsFlowWithReload):
                 vol.Required(CONF_RADIUS_KM): NumberSelector(
                     NumberSelectorConfig(min=MIN_RADIUS_KM, max=MAX_RADIUS_KM, step=1, unit_of_measurement="km", mode=NumberSelectorMode.BOX)
                 ),
+                vol.Required(CONF_FIRE_RISK_RADIUS_KM): NumberSelector(
+                    NumberSelectorConfig(min=MIN_RADIUS_KM, max=MAX_RADIUS_KM, step=1, unit_of_measurement="km", mode=NumberSelectorMode.BOX)
+                ),
                 vol.Required(CONF_MIN_CONFIDENCE): NumberSelector(
                     NumberSelectorConfig(min=0, max=1, step=0.05, mode=NumberSelectorMode.SLIDER)
                 ),
@@ -180,6 +185,7 @@ class LsaSafOptionsFlow(OptionsFlowWithReload):
 def _default_options() -> dict[str, Any]:
     return {
         CONF_RADIUS_KM: DEFAULT_RADIUS_KM,
+        CONF_FIRE_RISK_RADIUS_KM: DEFAULT_FIRE_RISK_RADIUS_KM,
         CONF_MIN_CONFIDENCE: DEFAULT_MIN_CONFIDENCE,
         CONF_MIN_FRP_MW: DEFAULT_MIN_FRP_MW,
         CONF_SCAN_INTERVAL_MINUTES: DEFAULT_SCAN_INTERVAL_MINUTES,

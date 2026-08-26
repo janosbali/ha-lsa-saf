@@ -8,7 +8,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .const import CONF_RADIUS_KM, DEFAULT_RADIUS_KM, DOMAIN
+from .const import CONF_FIRE_RISK_RADIUS_KM, CONF_RADIUS_KM, DEFAULT_RADIUS_KM, DOMAIN
 from .products.fire_risk import FireRiskClient, FireRiskError, FireRiskForecast
 
 _LOGGER = logging.getLogger(__name__)
@@ -35,7 +35,12 @@ class FireRiskCoordinator(DataUpdateCoordinator[FireRiskForecast]):
             return await self.client.async_forecast(
                 float(self.hass.config.latitude),
                 float(self.hass.config.longitude),
-                float(self.entry.options.get(CONF_RADIUS_KM, DEFAULT_RADIUS_KM)),
+                float(
+                    self.entry.options.get(
+                        CONF_FIRE_RISK_RADIUS_KM,
+                        self.entry.options.get(CONF_RADIUS_KM, DEFAULT_RADIUS_KM),
+                    )
+                ),
             )
         except FireRiskError as err:
             raise UpdateFailed(str(err)) from err

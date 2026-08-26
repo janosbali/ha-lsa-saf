@@ -43,6 +43,7 @@
         "title": "Aktív tűzfigyelés beállításai",
         "data": {
           "radius_km": "Figyelési sugár",
+          "fire_risk_radius_km": "Tűzkockázati előrejelzés sugara",
           "min_confidence": "Minimális megbízhatóság",
           "min_frp_mw": "Minimális tűzsugárzási teljesítmény",
           "scan_interval_minutes": "Ellenőrzési gyakoriság",
@@ -52,6 +53,7 @@
         },
         "data_description": {
           "radius_km": "Csak a Home Assistant Otthon helyétől ezen a távolságon belüli MTG tűzészlelések számítanak.",
+          "fire_risk_radius_km": "Az FRMv3 térképen megjelenő és a legmagasabb regionális tűzkockázathoz vizsgált terület. Az aktívtűz-riasztások sugarát nem módosítja.",
           "min_confidence": "A 0 minden észlelést enged; az 1 a legszigorúbb szűrés.",
           "min_frp_mw": "Az ennél gyengébb FRP-jű észlelések figyelmen kívül maradnak.",
           "scan_interval_minutes": "Milyen gyakran ellenőrizze a Home Assistant az új 10 perces MTG tűzterméket.",
@@ -100,6 +102,9 @@
           "extreme": "Szélsőséges",
           "unknown": "Ismeretlen"
         }
+      },
+      "fire_risk_update": {
+        "name": "Tűzkockázati előrejelzés legutóbbi frissítése"
       }
     },
     "event": {
@@ -135,6 +140,9 @@
     "number": {
       "monitoring_radius": {
         "name": "Aktív tűz figyelési sugár"
+      },
+      "fire_risk_radius": {
+        "name": "Tűzkockázati előrejelzés sugara"
       }
     }
   }

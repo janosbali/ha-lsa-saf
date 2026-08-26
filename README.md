@@ -151,7 +151,9 @@ service for Europe. It creates:
   its `forecast` attribute;
 - a separate **Highest fire risk in monitoring area** sensor;
 - a localized **Fire risk forecast day** selector (Today, Tomorrow, …);
+- an independent **Fire-risk forecast radius** control;
 - a **Fire risk forecast map** camera showing the selected day;
+- a **Latest fire-risk forecast update** status sensor;
 - a **Fire risk increase** event when the monitoring-area maximum rises to high
   or worse.
 
@@ -169,6 +171,19 @@ For free pan, zoom, time navigation and layer opacity controls, open the
 **MSG – FRMv3 – Fire Risk** under Add layers. This uses the product owner's
 viewer directly and needs no API key.
 
+You can also open it from **Settings → Devices & services → LSA SAF → LSA SAF**
+using Home Assistant's **Visit website** link. To put a one-tap shortcut on a
+dashboard, add this Button card:
+
+```yaml
+type: button
+name: Interactive fire-risk map
+icon: mdi:map-search
+tap_action:
+  action: url
+  url_path: https://adaguc.lsasvcs.ipma.pt/
+```
+
 Example dashboard card:
 
 ```yaml
@@ -183,6 +198,24 @@ Add `select.lsa_saf_fire_risk_forecast_day` beside the image to choose a named
 forecast day. Forecast data refreshes every 12 hours; generated map images are
 cached for one hour. Data is EUMETSAT / LSA SAF, CC BY 4.0; settlement labels
 are GeoNames, CC BY 4.0.
+
+For a compact ten-day outlook, add a Markdown card and replace the entity ID if
+Home Assistant generated a different one:
+
+```yaml
+type: markdown
+title: 10-day fire-risk outlook
+content: >-
+  {% set forecast = state_attr('sensor.lsa_saf_fire_risk_near_home', 'forecast') or [] %}
+  {% set labels = {'low':'🟦 Low','moderate':'🟩 Moderate','high':'🟨 High','very_high':'🟧 Very high','extreme':'🟥 Extreme','unknown':'⬜ Unknown'} %}
+  {% for day in forecast %}
+  **{{ as_timestamp(day.date) | timestamp_custom('%a, %d %b') }}** — {{ labels.get(day.risk, day.risk) }}<br>
+  {% endfor %}
+```
+
+The active-fire radius and fire-risk radius are deliberately independent. The
+first controls detections and alerts; the second controls the static FRMv3 map
+extent and regional maximum-risk sampling.
 
 ## Architecture
 

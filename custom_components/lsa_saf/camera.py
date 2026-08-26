@@ -11,6 +11,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from . import LsaSafConfigEntry
 from .const import (
     CONF_FIRE_RISK_DAY,
+    CONF_FIRE_RISK_RADIUS_KM,
     CONF_RADIUS_KM,
     DEFAULT_FIRE_RISK_DAY,
     DEFAULT_RADIUS_KM,
@@ -52,7 +53,7 @@ class FireRiskMapCamera(LsaSafFireRiskEntity, Camera):
     ) -> bytes | None:
         day = int(self.entry.options.get(CONF_FIRE_RISK_DAY, DEFAULT_FIRE_RISK_DAY))
         valid_date = datetime.now(UTC).date() + timedelta(days=day)
-        radius = float(self.entry.options.get(CONF_RADIUS_KM, DEFAULT_RADIUS_KM))
+        radius = self._risk_radius
         key = (valid_date, radius)
         if (
             self._cached_key == key
@@ -101,8 +102,18 @@ class FireRiskMapCamera(LsaSafFireRiskEntity, Camera):
             "valid_date": valid_date.isoformat(),
             "map_type": "annotated_static_preview",
             "monitoring_radius_km": float(
-                self.entry.options.get(CONF_RADIUS_KM, DEFAULT_RADIUS_KM)
+                self._risk_radius
             ),
             "interactive_map_url": INTERACTIVE_MAP_URL,
             "attribution": "EUMETSAT / LSA SAF, CC BY 4.0; GeoNames, CC BY 4.0",
         }
+
+    @property
+    def _risk_radius(self) -> float:
+        """Return the independent FRMv3 map radius with upgrade compatibility."""
+        return float(
+            self.entry.options.get(
+                CONF_FIRE_RISK_RADIUS_KM,
+                self.entry.options.get(CONF_RADIUS_KM, DEFAULT_RADIUS_KM),
+            )
+        )

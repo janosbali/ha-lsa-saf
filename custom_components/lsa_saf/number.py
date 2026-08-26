@@ -7,19 +7,21 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import LsaSafConfigEntry
 from .const import (
+    CONF_FIRE_RISK_RADIUS_KM,
     CONF_RADIUS_KM,
+    DEFAULT_FIRE_RISK_RADIUS_KM,
     DEFAULT_RADIUS_KM,
     DOMAIN,
     MAX_RADIUS_KM,
     MIN_RADIUS_KM,
 )
-from .entity import LsaSafEntity
+from .entity import LsaSafEntity, LsaSafFireRiskEntity
 
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: LsaSafConfigEntry, async_add_entities: AddConfigEntryEntitiesCallback
 ) -> None:
-    async_add_entities([MonitoringRadiusNumber(entry)])
+    async_add_entities([MonitoringRadiusNumber(entry), FireRiskRadiusNumber(entry)])
 
 
 class MonitoringRadiusNumber(LsaSafEntity, NumberEntity):
@@ -51,4 +53,36 @@ class MonitoringRadiusNumber(LsaSafEntity, NumberEntity):
             self.entry.runtime_data.fire_risk_coordinator.async_request_refresh(),
             f"{DOMAIN} refresh FRMv3 after radius change",
         )
+        self.async_write_ha_state()
+
+
+class FireRiskRadiusNumber(LsaSafFireRiskEntity, NumberEntity):
+    """Independent radius used for the FRMv3 map and regional maximum."""
+
+    _attr_translation_key = "fire_risk_radius"
+    _attr_native_min_value = MIN_RADIUS_KM
+    _attr_native_max_value = MAX_RADIUS_KM
+    _attr_native_step = 1.0
+    _attr_native_unit_of_measurement = "km"
+    _attr_mode = NumberMode.BOX
+    _attr_icon = "mdi:map-marker-radius"
+
+    def __init__(self, entry: LsaSafConfigEntry) -> None:
+        LsaSafFireRiskEntity.__init__(self, entry)
+        self._attr_unique_id = f"{entry.entry_id}_fire_risk_radius"
+
+    @property
+    def native_value(self) -> float:
+        return float(
+            self.entry.options.get(
+                CONF_FIRE_RISK_RADIUS_KM,
+                self.entry.options.get(CONF_RADIUS_KM, DEFAULT_FIRE_RISK_RADIUS_KM),
+            )
+        )
+
+    async def async_set_native_value(self, value: float) -> None:
+        options = dict(self.entry.options)
+        options[CONF_FIRE_RISK_RADIUS_KM] = float(value)
+        self.hass.config_entries.async_update_entry(self.entry, options=options)
+        await self.coordinator.async_request_refresh()
         self.async_write_ha_state()

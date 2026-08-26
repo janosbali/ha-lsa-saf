@@ -1,7 +1,7 @@
 """Sensors for LSA SAF."""
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
@@ -26,6 +26,7 @@ async def async_setup_entry(
             ProductAgeSensor(entry),
             FireRiskTodaySensor(entry),
             FireRiskAreaMaximumSensor(entry),
+            FireRiskUpdateSensor(entry),
         ]
     )
 
@@ -191,4 +192,34 @@ class FireRiskAreaMaximumSensor(LsaSafFireRiskEntity, SensorEntity):
             "valid_date": data.days[0].valid_date.isoformat(),
             "source_url": WMS_URL,
             "attribution": "EUMETSAT / LSA SAF, CC BY 4.0",
+        }
+
+
+class FireRiskUpdateSensor(LsaSafFireRiskEntity, SensorEntity):
+    """Expose successful FRMv3 refresh and validity metadata."""
+
+    _attr_translation_key = "fire_risk_update"
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+    _attr_icon = "mdi:cloud-sync"
+
+    def __init__(self, entry: LsaSafConfigEntry) -> None:
+        super().__init__(entry)
+        self._attr_unique_id = f"{entry.entry_id}_fire_risk_update"
+
+    @property
+    def native_value(self) -> datetime | None:
+        return self.coordinator.data.generated_at if self.coordinator.data else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        data = self.coordinator.data
+        if data is None:
+            return {"forecast_available": False}
+        return {
+            "forecast_available": True,
+            "forecast_days": len(data.days),
+            "valid_from": data.days[0].valid_date.isoformat(),
+            "valid_until": data.days[-1].valid_date.isoformat(),
+            "next_planned_update": (data.generated_at + timedelta(hours=12)).isoformat(),
+            "source_url": WMS_URL,
         }
