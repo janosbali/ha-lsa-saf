@@ -240,6 +240,7 @@ custom_components/lsa_saf/
 ├── config_flow.py
 ├── const.py
 ├── coordinator.py         # v0.1 active-fire coordinator
+├── diagnostics.py         # privacy-safe troubleshooting summary
 ├── fire_risk_coordinator.py
 ├── camera.py              # selected FRMv3 forecast map
 ├── entity.py
@@ -260,8 +261,10 @@ The domain is intentionally the generic `lsa_saf`, not `lsa_saf_mtg_fire`, so fu
 
 ### v0.3
 
-- MTLST land-surface-temperature point extraction for the Home location
-- product age / quality attributes
+- provider-neutral `FireDetection` model and provider interface
+- MTG adapter with unchanged active-fire behaviour
+- provider freshness/status diagnostics
+- persistent fire-incident tracking as a subsequent, separately tested step
 
 ### Later
 
@@ -300,4 +303,8 @@ The repository includes automated GitHub Actions for:
 - pip-audit dependency vulnerability checks
 - repository secret-pattern scanning and weekly Dependabot updates
 
-The HACS action temporarily ignores the `brands` check for initial custom-repository testing. Before submitting the project to the HACS default repository, add original brand assets for this integration and remove that ignore. A GitHub release is recommended for stable HACS version selection.
+The repository bundles local normal- and high-DPI brand icons for Home Assistant
+2026.3 and newer. The HACS `brands` check remains ignored until the same artwork
+is accepted into the separate upstream `home-assistant/brands` repository. Each
+stable integration version is published as a GitHub release for predictable
+HACS installation and rollback.

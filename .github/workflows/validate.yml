@@ -22,11 +22,9 @@ jobs:
         run: python -m compileall -q custom_components tests
       - name: Validate JSON
         run: |
-          python -m json.tool custom_components/lsa_saf/manifest.json >/dev/null
-          python -m json.tool custom_components/lsa_saf/strings.json >/dev/null
-          python -m json.tool custom_components/lsa_saf/translations/en.json >/dev/null
-          python -m json.tool custom_components/lsa_saf/translations/hu.json >/dev/null
-          python -m json.tool custom_components/lsa_saf/data/country_borders.json >/dev/null
+          while IFS= read -r -d '' file; do
+            python -m json.tool "$file" >/dev/null
+          done < <(find custom_components/lsa_saf -type f -name '*.json' -print0)
           python -m json.tool hacs.json >/dev/null
 
 
@@ -60,6 +58,6 @@ jobs:
         uses: hacs/action@main
         with:
           category: integration
-          # Brand assets are intentionally deferred for the first custom-repository test.
-          # Remove this ignore before submitting the repository to HACS defaults.
+          # Local brand assets work in Home Assistant 2026.3+, but the HACS
+          # brands check requires a separate upstream home-assistant/brands PR.
           ignore: brands

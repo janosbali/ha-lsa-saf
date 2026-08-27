@@ -22,7 +22,7 @@ class LsaSafEntity(CoordinatorEntity[LsaSafCoordinator]):
             identifiers={(DOMAIN, entry.entry_id)},
             name=NAME,
             manufacturer="EUMETSAT / LSA SAF",
-            model="Satellite products",
+            model="MTG Active Fire / FRMv3",
             configuration_url="https://adaguc.lsasvcs.ipma.pt/",
         )
 
@@ -39,6 +39,6 @@ class LsaSafFireRiskEntity(CoordinatorEntity[FireRiskCoordinator]):
             identifiers={(DOMAIN, entry.entry_id)},
             name=NAME,
             manufacturer="EUMETSAT / LSA SAF",
-            model="Satellite products",
+            model="MTG Active Fire / FRMv3",
             configuration_url="https://adaguc.lsasvcs.ipma.pt/",
         )

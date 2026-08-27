@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.8
+
+- Add privacy-safe Home Assistant config-entry diagnostics without credentials,
+  Home coordinates, fire coordinates, source URLs, or place names.
+- Replace the English device model label with the locale-neutral product name
+  `MTG Active Fire / FRMv3`.
+- Validate every bundled integration JSON and translation file in CI.
+- Refresh release metadata and branding documentation.
+
 ## 0.2.7
 
 - Add bundled Home Assistant brand icons for normal and high-DPI displays.
