@@ -116,6 +116,15 @@
       },
       "fire_risk_update": {
         "name": "Tűzkockázati előrejelzés legutóbbi frissítése"
+      },
+      "recent_detections": {
+        "name": "Tűzészlelések az elmúlt órában"
+      },
+      "fire_activity_frp_change": {
+        "name": "Tűzaktivitás FRP-változása egy óra alatt"
+      },
+      "new_incidents_24h": {
+        "name": "Új tűzesetek az elmúlt 24 órában"
       }
     },
     "event": {
@@ -124,6 +133,9 @@
       },
       "fire_risk_increase": {
         "name": "Tűzkockázat emelkedése"
+      },
+      "fire_trend": {
+        "name": "Tűzeset trendváltozása"
       }
     },
     "select": {

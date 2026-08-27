@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.6.0
+
+- Add a bounded 24-hour provider-neutral activity history that never appears as
+  an unbounded Home Assistant state attribute.
+- Add sensors for detections during the last 1/3/6 hours, aggregate FRP change
+  during the last 1/3 hours, and new incidents during the last 24 hours.
+- Replace repeated observations of the same satellite product instead of
+  double-counting them, while preserving its original new-incident count.
+- Add a Fire incident trend event entity for meaningful transitions to
+  increasing intensity, increasing/decreasing activity, or approaching Home.
+- Apply a persistent per-incident, per-event 60-minute cooldown in addition to
+  the trend engine's minimum sample, tolerance, and hysteresis rules.
+- Publish automation-friendly `lsa_saf_fire_trend` bus events with bounded
+  incident metadata, source attribution, and product time.
+- Add English, Hungarian, German, French, Spanish, and Italian entity names.
+- Add tests for fixed time windows, duplicate products, storage bounds, trend
+  transitions, and repeat-event suppression.
+
 ## 0.5.0
 
 - Add a provider-neutral trend engine for incident FRP, detection/pixel

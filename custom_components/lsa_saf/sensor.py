@@ -26,6 +26,9 @@ async def async_setup_entry(
             ProductTimeSensor(entry),
             ProductAgeSensor(entry),
             ProviderStatusSensor(entry),
+            RecentDetectionsSensor(entry),
+            FireActivityFrpChangeSensor(entry),
+            NewIncidents24hSensor(entry),
             FireRiskTodaySensor(entry),
             FireRiskAreaMaximumSensor(entry),
             FireRiskUpdateSensor(entry),
@@ -178,6 +181,77 @@ class ProviderStatusSensor(LsaSafEntity, SensorEntity):
                 else None
             ),
         }
+
+
+class RecentDetectionsSensor(LsaSafEntity, SensorEntity):
+    """Count provider detections in fixed recent windows."""
+
+    _attr_translation_key = "recent_detections"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_icon = "mdi:chart-timeline-variant"
+
+    def __init__(self, entry: LsaSafConfigEntry) -> None:
+        super().__init__(entry)
+        self._attr_unique_id = f"{entry.entry_id}_recent_detections"
+
+    @property
+    def native_value(self) -> int:
+        data = self.coordinator.data
+        return data.activity.detections_1h if data else 0
+
+    @property
+    def extra_state_attributes(self) -> dict[str, int]:
+        data = self.coordinator.data
+        if data is None:
+            return {"detections_last_3h": 0, "detections_last_6h": 0}
+        return {
+            "detections_last_3h": data.activity.detections_3h,
+            "detections_last_6h": data.activity.detections_6h,
+            "history_samples_24h": data.activity.samples_24h,
+        }
+
+
+class FireActivityFrpChangeSensor(LsaSafEntity, SensorEntity):
+    """Change in total clustered FRP across recent product observations."""
+
+    _attr_translation_key = "fire_activity_frp_change"
+    _attr_native_unit_of_measurement = UnitOfPower.MEGA_WATT
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_suggested_display_precision = 1
+    _attr_icon = "mdi:trending-up"
+
+    def __init__(self, entry: LsaSafConfigEntry) -> None:
+        super().__init__(entry)
+        self._attr_unique_id = f"{entry.entry_id}_fire_activity_frp_change"
+
+    @property
+    def native_value(self) -> float | None:
+        data = self.coordinator.data
+        return data.activity.frp_change_1h if data else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, float | None]:
+        data = self.coordinator.data
+        return {
+            "frp_change_last_3h": data.activity.frp_change_3h if data else None
+        }
+
+
+class NewIncidents24hSensor(LsaSafEntity, SensorEntity):
+    """Count newly created incidents during the last 24 hours."""
+
+    _attr_translation_key = "new_incidents_24h"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_icon = "mdi:fire-plus"
+
+    def __init__(self, entry: LsaSafConfigEntry) -> None:
+        super().__init__(entry)
+        self._attr_unique_id = f"{entry.entry_id}_new_incidents_24h"
+
+    @property
+    def native_value(self) -> int:
+        data = self.coordinator.data
+        return data.activity.new_incidents_24h if data else 0
 
 
 class FireRiskTodaySensor(LsaSafFireRiskEntity, SensorEntity):

@@ -42,7 +42,14 @@ It checks for the newest deterministic 10-minute product filename, parses the fi
 - `sensor.*_fire_product_age` – age of the latest product in minutes
 - `sensor.*_active_fire_data_status` – provider health and freshness, including
   delayed, no-product and outage states
+- `sensor.*_fire_detections_in_the_last_hour` – detections during the last hour,
+  with 3-hour and 6-hour counters as bounded attributes
+- `sensor.*_fire_activity_frp_change_over_one_hour` – aggregate clustered FRP
+  change over one hour, with the 3-hour change as a bounded attribute
+- `sensor.*_new_fire_incidents_in_the_last_24_hours` – new tracked incidents in
+  the rolling 24-hour window
 - `event.*_new_active_fire` – Home Assistant Event entity for a newly deduplicated fire
+- `event.*_fire_incident_trend_change` – meaningful, cooldown-protected trend changes
 - `geo_location.*` – one live map marker per active fire cluster
 - `number.*_active_fire_monitoring_radius` – dashboard-adjustable monitoring radius
 
@@ -117,6 +124,28 @@ Event data includes:
 - `distance_trend`
 - `product_time`
 - `source_url`
+
+Meaningful incident trend transitions also fire:
+
+```text
+lsa_saf_fire_trend
+```
+
+Its `event_type` is one of `fire_intensity_increasing`,
+`fire_activity_increasing`, `fire_activity_decreasing`, or `fire_approaching`.
+The integration only emits a transition after the trend engine's minimum sample
+and duration rules are satisfied. A persisted 60-minute per-incident,
+per-event-type cooldown prevents notification floods, including across restarts.
+
+### Activity history
+
+The integration persists only a compact rolling 24-hour history, capped at 180
+product observations. It derives small Recorder-friendly sensor states from
+this history; raw observation arrays are never exposed as entity attributes.
+"Detections" means filtered provider fire detections contributing to processed
+products, while "new incidents" means newly created deduplicated incident IDs.
+FRP change is the difference between the first and last total clustered FRP in
+the selected window and remains unavailable until at least two samples exist.
 
 ### Data freshness and provider health
 
@@ -301,8 +330,9 @@ The domain is intentionally the generic `lsa_saf`, not `lsa_saf_mtg_fire`, so fu
 
 ### v0.4
 
-- incident trend events with cooldown and meaningful-change thresholds
-- aggregated activity counters for the last 1, 3, 6, and 24 hours
+- aggregate Active Fire Situation indicator based on the stable incident and
+  trend layers
+- prepare a separate GOES technical spike without adding production dependencies
 
 ### Multi-source detection and incident verification
 

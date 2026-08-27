@@ -12,12 +12,14 @@ from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
+from .activity import ActivitySummary, summarize_activity, update_activity_history
 from .clustering import cluster_detections, haversine_km
 from .const import (
     ATTR_NOTIFICATION_MESSAGE,
     ATTR_NOTIFICATION_TITLE,
     ATTR_PRODUCT_TIME,
     ATTR_SOURCE_URL,
+    BUS_EVENT_FIRE_TREND,
     BUS_EVENT_NEW_FIRE,
     CONF_DEDUP_HOURS,
     CONF_DEDUP_RADIUS_KM,
@@ -69,7 +71,9 @@ class CoordinatorData:
     active_clusters: list[FireCluster]
     tracked_fires: list[FireCluster]
     new_fires: list[dict[str, Any]]
+    trend_events: list[dict[str, Any]]
     raw_pixels_in_radius: int
+    activity: ActivitySummary
 
 
 class LsaSafCoordinator(DataUpdateCoordinator[CoordinatorData]):
@@ -92,6 +96,7 @@ class LsaSafCoordinator(DataUpdateCoordinator[CoordinatorData]):
         self.received_timestamp: datetime | None = None
         self._store = Store(hass, STORE_VERSION, f"{DOMAIN}.{entry.entry_id}.tracks")
         self._tracks: list[dict[str, Any]] = []
+        self._activity_history: list[dict[str, Any]] = []
         self._store_loaded = False
         self._initialized = False
         self._place_resolver = place_resolver
@@ -110,6 +115,8 @@ class LsaSafCoordinator(DataUpdateCoordinator[CoordinatorData]):
         stored = await self._store.async_load()
         if isinstance(stored, dict) and isinstance(stored.get("tracks"), list):
             self._tracks = stored["tracks"]
+            if isinstance(stored.get("activity_history"), list):
+                self._activity_history = stored["activity_history"]
             self._initialized = bool(stored.get("initialized", True))
             for track in self._tracks:
                 if track.get("place_attribution") != GEONAMES_ATTRIBUTION:
@@ -169,6 +176,7 @@ class LsaSafCoordinator(DataUpdateCoordinator[CoordinatorData]):
             max(0.5, dedup_radius * 0.66),
         )
         new_fires: list[dict[str, Any]] = []
+        trend_events: list[dict[str, Any]] = []
         first_snapshot = not self._initialized
         tracking = update_incidents(
             self._tracks,
@@ -201,12 +209,33 @@ class LsaSafCoordinator(DataUpdateCoordinator[CoordinatorData]):
                 new_fires.append(attrs)
                 self.hass.bus.async_fire(BUS_EVENT_NEW_FIRE, attrs)
 
+        for event_type, _track, cluster in tracking.trend_events:
+            attrs = cluster.attrs() | {
+                "event_type": event_type,
+                ATTR_SOURCE_URL: snapshot.source_url,
+                ATTR_PRODUCT_TIME: snapshot.product_timestamp.isoformat(),
+            }
+            trend_events.append(attrs)
+            self.hass.bus.async_fire(BUS_EVENT_FIRE_TREND, attrs)
+
         if first_snapshot:
             self._initialized = True
             changed = True
 
+        self._activity_history = update_activity_history(
+            self._activity_history,
+            timestamp=snapshot.product_timestamp,
+            detections=len(filtered),
+            total_frp_mw=sum(cluster.frp_mw for cluster in clusters),
+            new_incidents=0 if first_snapshot else len(tracking.new_incidents),
+        )
+        activity = summarize_activity(
+            self._activity_history, now=snapshot.product_timestamp
+        )
+        changed = True
+
         if changed and self._store_loaded:
-            await self._store.async_save({"initialized": self._initialized, "tracks": self._tracks})
+            await self._async_save_state()
 
         if self._place_resolver is not None:
             for track in self._tracks:
@@ -219,7 +248,9 @@ class LsaSafCoordinator(DataUpdateCoordinator[CoordinatorData]):
             active_clusters=clusters,
             tracked_fires=_tracked_fire_clusters(self._tracks, home_lat, home_lon),
             new_fires=new_fires,
+            trend_events=trend_events,
             raw_pixels_in_radius=len(filtered),
+            activity=activity,
         )
 
     def _set_provider_failure_status(self, status: ProviderStatus) -> None:
@@ -280,9 +311,7 @@ class LsaSafCoordinator(DataUpdateCoordinator[CoordinatorData]):
             if track is None:
                 return
             _apply_place(track, None, place)
-            await self._store.async_save(
-                {"initialized": self._initialized, "tracks": self._tracks}
-            )
+            await self._async_save_state()
             if self.data:
                 for cluster in self.data.tracked_fires:
                     if cluster.track_id == track_id:
@@ -296,6 +325,16 @@ class LsaSafCoordinator(DataUpdateCoordinator[CoordinatorData]):
             _LOGGER.debug("Could not resolve place name for fire %s: %s", track_id, err)
         finally:
             self._pending_place_ids.discard(track_id)
+
+    async def _async_save_state(self) -> None:
+        """Persist incidents and bounded activity aggregates together."""
+        await self._store.async_save(
+            {
+                "initialized": self._initialized,
+                "tracks": self._tracks,
+                "activity_history": self._activity_history,
+            }
+        )
 
 
 def _apply_place(

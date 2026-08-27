@@ -8,6 +8,10 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from . import LsaSafConfigEntry
 from .const import (
     BUS_EVENT_FIRE_RISK_INCREASE,
+    EVENT_FIRE_ACTIVITY_DECREASING,
+    EVENT_FIRE_ACTIVITY_INCREASING,
+    EVENT_FIRE_APPROACHING,
+    EVENT_FIRE_INTENSITY_INCREASING,
     EVENT_FIRE_RISK_INCREASE,
     EVENT_NEW_FIRE,
 )
@@ -17,7 +21,13 @@ from .entity import LsaSafEntity, LsaSafFireRiskEntity
 async def async_setup_entry(
     hass: HomeAssistant, entry: LsaSafConfigEntry, async_add_entities: AddConfigEntryEntitiesCallback
 ) -> None:
-    async_add_entities([NewFireEvent(entry), FireRiskIncreaseEvent(entry)])
+    async_add_entities(
+        [
+            NewFireEvent(entry),
+            FireTrendEvent(entry),
+            FireRiskIncreaseEvent(entry),
+        ]
+    )
 
 
 class NewFireEvent(LsaSafEntity, EventEntity):
@@ -39,6 +49,34 @@ class NewFireEvent(LsaSafEntity, EventEntity):
             self._last_product_filename = data.filename
             for fire in data.new_fires:
                 self._trigger_event(EVENT_NEW_FIRE, fire)
+                self.async_write_ha_state()
+        super()._handle_coordinator_update()
+
+
+class FireTrendEvent(LsaSafEntity, EventEntity):
+    """Meaningful, cooldown-protected incident trend changes."""
+
+    _attr_translation_key = "fire_trend"
+    _attr_event_types = [
+        EVENT_FIRE_INTENSITY_INCREASING,
+        EVENT_FIRE_ACTIVITY_INCREASING,
+        EVENT_FIRE_ACTIVITY_DECREASING,
+        EVENT_FIRE_APPROACHING,
+    ]
+    _attr_icon = "mdi:chart-timeline-variant-shimmer"
+
+    def __init__(self, entry: LsaSafConfigEntry) -> None:
+        super().__init__(entry)
+        self._attr_unique_id = f"{entry.entry_id}_fire_trend"
+        self._last_product_filename: str | None = None
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        data = self.coordinator.data
+        if data and data.filename != self._last_product_filename:
+            self._last_product_filename = data.filename
+            for event_data in data.trend_events:
+                self._trigger_event(str(event_data["event_type"]), event_data)
                 self.async_write_ha_state()
         super()._handle_coordinator_update()
 

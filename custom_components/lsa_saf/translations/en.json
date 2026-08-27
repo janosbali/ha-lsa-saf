@@ -116,6 +116,15 @@
       },
       "fire_risk_update": {
         "name": "Latest fire-risk forecast update"
+      },
+      "recent_detections": {
+        "name": "Fire detections in the last hour"
+      },
+      "fire_activity_frp_change": {
+        "name": "Fire activity FRP change over one hour"
+      },
+      "new_incidents_24h": {
+        "name": "New fire incidents in the last 24 hours"
       }
     },
     "event": {
@@ -124,6 +133,9 @@
       },
       "fire_risk_increase": {
         "name": "Fire risk increase"
+      },
+      "fire_trend": {
+        "name": "Fire incident trend change"
       }
     },
     "select": {

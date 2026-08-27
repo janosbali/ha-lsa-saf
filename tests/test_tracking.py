@@ -3,8 +3,13 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
+from custom_components.lsa_saf.const import (
+    EVENT_FIRE_ACTIVITY_INCREASING,
+    EVENT_FIRE_APPROACHING,
+    EVENT_FIRE_INTENSITY_INCREASING,
+)
 from custom_components.lsa_saf.models import FireCluster, FireLifecycle
-from custom_components.lsa_saf.tracking import update_incidents
+from custom_components.lsa_saf.tracking import _trend_events, update_incidents
 
 BASE = datetime(2026, 8, 27, 12, 0, tzinfo=UTC)
 
@@ -154,3 +159,84 @@ def test_legacy_persisted_track_is_migrated_and_continued() -> None:
     assert incident["lifecycle"] == FireLifecycle.CONTINUING.value
     assert incident["maximum_frp_mw"] == 12.0
     assert incident["detections_total"] == 3
+
+
+def test_meaningful_trend_transitions_emit_incident_events() -> None:
+    result = update_incidents(
+        [], [_cluster()], now=BASE, matching_radius_km=3.0, memory_hours=6
+    )
+    for minutes, frp, pixels, distance in (
+        (10, 20.0, 4, 23.0),
+        (20, 35.0, 7, 20.0),
+    ):
+        at = BASE + timedelta(minutes=minutes)
+        result = update_incidents(
+            result.incidents,
+            [
+                _cluster(
+                    at,
+                    latitude=46.0 + 0.001 * minutes,
+                    frp_mw=frp,
+                    pixel_count=pixels,
+                    distance_km=distance,
+                )
+            ],
+            now=at,
+            matching_radius_km=3.0,
+            memory_hours=6,
+        )
+
+    assert {event[0] for event in result.trend_events} == {
+        EVENT_FIRE_INTENSITY_INCREASING,
+        EVENT_FIRE_ACTIVITY_INCREASING,
+        EVENT_FIRE_APPROACHING,
+    }
+
+
+def test_repeated_product_does_not_repeat_trend_events() -> None:
+    result = update_incidents(
+        [], [_cluster()], now=BASE, matching_radius_km=3.0, memory_hours=6
+    )
+    for minutes in (10, 20):
+        at = BASE + timedelta(minutes=minutes)
+        cluster = _cluster(
+            at,
+            latitude=46.0 + 0.001 * minutes,
+            frp_mw=10 + minutes,
+            pixel_count=2 + minutes,
+            distance_km=25 - minutes / 5,
+        )
+        result = update_incidents(
+            result.incidents,
+            [cluster],
+            now=at,
+            matching_radius_km=3.0,
+            memory_hours=6,
+        )
+
+    repeated = update_incidents(
+        result.incidents,
+        [cluster],
+        now=BASE + timedelta(minutes=25),
+        matching_radius_km=3.0,
+        memory_hours=6,
+    )
+
+    assert repeated.trend_events == []
+
+
+def test_trend_event_cooldown_survives_state_oscillation() -> None:
+    incident = {"activity_trend": "increasing"}
+    previous = {
+        "frp_trend": "stable",
+        "activity_trend": "stable",
+        "distance_trend": "stable",
+    }
+
+    first = _trend_events(incident, BASE, previous)
+    repeated = _trend_events(
+        incident, BASE + timedelta(minutes=30), previous
+    )
+
+    assert first == [EVENT_FIRE_ACTIVITY_INCREASING]
+    assert repeated == []

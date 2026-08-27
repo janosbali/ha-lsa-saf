@@ -82,6 +82,17 @@ async def async_get_config_entry_diagnostics(
             "raw_pixels_in_radius": (
                 active_data.raw_pixels_in_radius if active_data else None
             ),
+            "activity_summary": (
+                {
+                    "detections_1h": active_data.activity.detections_1h,
+                    "detections_3h": active_data.activity.detections_3h,
+                    "detections_6h": active_data.activity.detections_6h,
+                    "new_incidents_24h": active_data.activity.new_incidents_24h,
+                    "history_samples_24h": active_data.activity.samples_24h,
+                }
+                if active_data and getattr(active_data, "activity", None)
+                else None
+            ),
         },
         "fire_risk": {
             "last_update_success": risk.last_update_success,

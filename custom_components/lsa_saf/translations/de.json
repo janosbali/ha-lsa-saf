@@ -55,9 +55,12 @@
       "provider_status": {"name": "Status der Aktivbranddaten", "state": {"initializing": "Wird initialisiert", "available": "Verfügbar", "delayed": "Verspätet", "no_product": "Kein aktuelles Produkt", "outage": "Anbieterausfall", "auth_error": "Authentifizierungsfehler"}},
       "fire_risk_today": {"name": "Waldbrandgefahr in der Nähe von Zuhause", "state": {"low": "Niedrig", "moderate": "Mäßig", "high": "Hoch", "very_high": "Sehr hoch", "extreme": "Extrem", "unknown": "Unbekannt"}},
       "fire_risk_area_maximum": {"name": "Höchste Waldbrandgefahr im Überwachungsgebiet", "state": {"low": "Niedrig", "moderate": "Mäßig", "high": "Hoch", "very_high": "Sehr hoch", "extreme": "Extrem", "unknown": "Unbekannt"}},
-      "fire_risk_update": {"name": "Letzte Aktualisierung der Waldbrandgefahrenvorhersage"}
+      "fire_risk_update": {"name": "Letzte Aktualisierung der Waldbrandgefahrenvorhersage"},
+      "recent_detections": {"name": "Branderkennungen in der letzten Stunde"},
+      "fire_activity_frp_change": {"name": "FRP-Änderung der Brandaktivität in einer Stunde"},
+      "new_incidents_24h": {"name": "Neue Brandereignisse in den letzten 24 Stunden"}
     },
-    "event": {"new_fire": {"name": "Neues aktives Feuer"}, "fire_risk_increase": {"name": "Anstieg der Waldbrandgefahr"}},
+    "event": {"new_fire": {"name": "Neues aktives Feuer"}, "fire_risk_increase": {"name": "Anstieg der Waldbrandgefahr"}, "fire_trend": {"name": "Trendänderung eines Brandereignisses"}},
     "select": {"fire_risk_day": {"name": "Tag der Waldbrandgefahrenvorhersage", "state": {"today": "Heute", "tomorrow": "Morgen", "in_2_days": "In 2 Tagen", "in_3_days": "In 3 Tagen", "in_4_days": "In 4 Tagen", "in_5_days": "In 5 Tagen", "in_6_days": "In 6 Tagen", "in_7_days": "In 7 Tagen", "in_8_days": "In 8 Tagen", "in_9_days": "In 9 Tagen"}}},
     "camera": {"fire_risk_map": {"name": "Karte der Waldbrandgefahrenvorhersage"}},
     "calendar": {"fire_risk_forecast": {"name": "10-Tage-Waldbrandgefahrenvorhersage"}},

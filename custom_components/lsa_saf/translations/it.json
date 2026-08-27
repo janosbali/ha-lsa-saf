@@ -55,9 +55,12 @@
       "provider_status": {"name": "Stato dei dati sugli incendi attivi", "state": {"initializing": "Inizializzazione", "available": "Disponibile", "delayed": "In ritardo", "no_product": "Nessun prodotto attuale", "outage": "Interruzione del fornitore", "auth_error": "Errore di autenticazione"}},
       "fire_risk_today": {"name": "Rischio di incendio vicino a Casa", "state": {"low": "Basso", "moderate": "Moderato", "high": "Alto", "very_high": "Molto alto", "extreme": "Estremo", "unknown": "Sconosciuto"}},
       "fire_risk_area_maximum": {"name": "Rischio di incendio massimo nell’area monitorata", "state": {"low": "Basso", "moderate": "Moderato", "high": "Alto", "very_high": "Molto alto", "extreme": "Estremo", "unknown": "Sconosciuto"}},
-      "fire_risk_update": {"name": "Ultimo aggiornamento della previsione del rischio di incendio"}
+      "fire_risk_update": {"name": "Ultimo aggiornamento della previsione del rischio di incendio"},
+      "recent_detections": {"name": "Rilevamenti di incendio nell’ultima ora"},
+      "fire_activity_frp_change": {"name": "Variazione FRP dell’attività dell’incendio in un’ora"},
+      "new_incidents_24h": {"name": "Nuovi incendi nelle ultime 24 ore"}
     },
-    "event": {"new_fire": {"name": "Nuovo incendio attivo"}, "fire_risk_increase": {"name": "Aumento del rischio di incendio"}},
+    "event": {"new_fire": {"name": "Nuovo incendio attivo"}, "fire_risk_increase": {"name": "Aumento del rischio di incendio"}, "fire_trend": {"name": "Cambiamento di tendenza dell’incendio"}},
     "select": {"fire_risk_day": {"name": "Giorno della previsione del rischio di incendio", "state": {"today": "Oggi", "tomorrow": "Domani", "in_2_days": "Tra 2 giorni", "in_3_days": "Tra 3 giorni", "in_4_days": "Tra 4 giorni", "in_5_days": "Tra 5 giorni", "in_6_days": "Tra 6 giorni", "in_7_days": "Tra 7 giorni", "in_8_days": "Tra 8 giorni", "in_9_days": "Tra 9 giorni"}}},
     "camera": {"fire_risk_map": {"name": "Mappa di previsione del rischio di incendio"}},
     "calendar": {"fire_risk_forecast": {"name": "Previsione del rischio di incendio a 10 giorni"}},

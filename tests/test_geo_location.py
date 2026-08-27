@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 from types import SimpleNamespace
 from unittest.mock import Mock
 
+from custom_components.lsa_saf.activity import ActivitySummary
 from custom_components.lsa_saf.const import (
     ATTR_ACTIVITY_TREND,
     ATTR_DISTANCE_TREND,
@@ -74,7 +75,9 @@ def _entity(cluster: FireCluster) -> LsaSafFireLocation:
             active_clusters=[cluster],
             tracked_fires=[cluster],
             new_fires=[],
+            trend_events=[],
             raw_pixels_in_radius=2,
+            activity=ActivitySummary(),
         )
     )
     return entity
