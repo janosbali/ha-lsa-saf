@@ -21,7 +21,10 @@ from custom_components.lsa_saf.coordinator import (
     FireCluster,
     _tracked_fire_clusters,
 )
-from custom_components.lsa_saf.geo_location import LsaSafFireLocation
+from custom_components.lsa_saf.geo_location import (
+    LsaSafFireLocation,
+    _async_remove_expired_entity,
+)
 
 
 def _cluster(**changes) -> FireCluster:
@@ -145,3 +148,31 @@ def test_legacy_track_without_map_metadata_is_ignored() -> None:
     }
 
     assert _tracked_fire_clusters([legacy_track], 46.2, 20.1) == []
+
+
+def test_expired_map_entity_is_removed_from_registry() -> None:
+    hass = Mock()
+    registry = Mock()
+    registry.async_get.return_value = object()
+    entity = SimpleNamespace(entity_id="geo_location.expired_fire")
+
+    _async_remove_expired_entity(hass, registry, entity)
+
+    registry.async_remove.assert_called_once_with("geo_location.expired_fire")
+    hass.async_create_task.assert_not_called()
+
+
+def test_unregistered_expired_map_entity_is_removed_from_platform() -> None:
+    hass = Mock()
+    registry = Mock()
+    registry.async_get.return_value = None
+    entity = SimpleNamespace(
+        entity_id="geo_location.expired_fire",
+        async_remove=Mock(return_value="remove-task"),
+    )
+
+    _async_remove_expired_entity(hass, registry, entity)
+
+    registry.async_remove.assert_not_called()
+    entity.async_remove.assert_called_once_with(force_remove=True)
+    hass.async_create_task.assert_called_once_with("remove-task")

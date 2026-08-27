@@ -15,6 +15,23 @@ from .coordinator import FireCluster
 from .entity import LsaSafEntity
 
 
+@callback
+def _async_remove_expired_entity(
+    hass: HomeAssistant,
+    registry: er.EntityRegistry,
+    entity: LsaSafFireLocation,
+) -> None:
+    """Remove an expired marker from both the platform and registry."""
+    entity_id = entity.entity_id
+    if entity_id is not None and registry.async_get(entity_id) is not None:
+        # Removing the registry entry also removes the loaded entity. This
+        # prevents expired fire markers from lingering as unavailable entities.
+        registry.async_remove(entity_id)
+        return
+
+    hass.async_create_task(entity.async_remove(force_remove=True))
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: LsaSafConfigEntry,
@@ -55,7 +72,7 @@ async def async_setup_entry(
 
         for track_id in entities.keys() - active.keys():
             entity = entities.pop(track_id)
-            hass.async_create_task(entity.async_remove(force_remove=True))
+            _async_remove_expired_entity(hass, registry, entity)
 
         new_entities: list[LsaSafFireLocation] = []
         for track_id, cluster in active.items():

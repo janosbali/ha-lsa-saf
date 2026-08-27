@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.6
+
+- Remove expired fire-location entities directly from Home Assistant's entity
+  registry so they no longer remain visible as unavailable controls.
+
 ## 0.2.5
 
 - Replace nine-point regional-risk sampling with an offline scan of the full
