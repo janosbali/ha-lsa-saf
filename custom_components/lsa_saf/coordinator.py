@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-import hashlib
 import logging
 from typing import Any
 
@@ -40,13 +39,14 @@ from .geocoding import (
     PlaceLookupError,
     PlaceNameResolver,
 )
-from .models import FireCluster, FireDetection, ProviderStatus
+from .models import FireCluster, FireDetection, FireLifecycle, ProviderStatus
 from .providers.base import (
     ActiveFireProvider,
     ProviderAuthenticationError,
     ProviderNoDataError,
     ProviderUnavailableError,
 )
+from .tracking import update_incidents
 
 _LOGGER = logging.getLogger(__name__)
 STORE_VERSION = 1
@@ -161,72 +161,38 @@ class LsaSafCoordinator(DataUpdateCoordinator[CoordinatorData]):
             home_lon,
             max(0.5, dedup_radius * 0.66),
         )
-        now = datetime.now(UTC)
-        cutoff = now - timedelta(hours=dedup_hours)
-        self._tracks = [t for t in self._tracks if _parse_dt(t.get("last_seen")) >= cutoff]
-
         new_fires: list[dict[str, Any]] = []
-        changed = False
         first_snapshot = not self._initialized
-        matched_track_ids: set[str] = set()
-        for cluster in clusters:
-            matched: dict[str, Any] | None = None
-            for track in self._tracks:
-                if track.get("track_id") in matched_track_ids:
-                    continue
-                if haversine_km(cluster.latitude, cluster.longitude, float(track["latitude"]), float(track["longitude"])) <= dedup_radius:
-                    matched = track
-                    break
-
-            if matched is None:
-                track_id = hashlib.blake2s(
-                    f"{cluster.latitude:.4f}:{cluster.longitude:.4f}:{cluster.acquired.isoformat()}".encode(),
-                    digest_size=6,
-                ).hexdigest()
-                matched = {
-                    "track_id": track_id,
-                    "latitude": cluster.latitude,
-                    "longitude": cluster.longitude,
-                    "first_seen": cluster.acquired.isoformat(),
-                    "last_seen": cluster.acquired.isoformat(),
-                    "peak_frp_mw": cluster.frp_mw,
-                    "frp_mw": cluster.frp_mw,
-                    "confidence": cluster.confidence,
-                    "pixel_count": cluster.pixel_count,
-                }
-                self._tracks.append(matched)
-                cluster.track_id = track_id
-                cluster.peak_frp_mw = cluster.frp_mw
-                if not first_snapshot:
-                    await self._async_resolve_new_fire_place(matched, cluster)
-                attrs = cluster.attrs() | {
-                    ATTR_SOURCE_URL: snapshot.source_url,
-                    ATTR_PRODUCT_TIME: snapshot.product_timestamp.isoformat(),
-                }
-                if not first_snapshot:
-                    title, message = _notification_text(
-                        self.hass.config.language,
-                        cluster.nearest_settlement,
-                        cluster.distance_km,
-                        cluster.confidence,
-                    )
-                    attrs[ATTR_NOTIFICATION_TITLE] = title
-                    attrs[ATTR_NOTIFICATION_MESSAGE] = message
-                    new_fires.append(attrs)
-                    self.hass.bus.async_fire(BUS_EVENT_NEW_FIRE, attrs)
-                changed = True
-            else:
-                matched["latitude"] = cluster.latitude
-                matched["longitude"] = cluster.longitude
-                matched["last_seen"] = cluster.acquired.isoformat()
-                matched["peak_frp_mw"] = max(float(matched.get("peak_frp_mw", 0)), cluster.frp_mw)
-                matched["frp_mw"] = cluster.frp_mw
-                matched["confidence"] = cluster.confidence
-                matched["pixel_count"] = cluster.pixel_count
-                cluster.track_id = str(matched["track_id"])
-                cluster.peak_frp_mw = float(matched["peak_frp_mw"])
-                changed = True
-            matched_track_ids.add(str(matched["track_id"]))
+        tracking = update_incidents(
+            self._tracks,
+            clusters,
+            # Lifecycle age follows observation time, not wall-clock polling
+            # time. A delayed but valid product must not expire and recreate
+            # the same incident as a false new-fire alert.
+            now=snapshot.product_timestamp,
+            matching_radius_km=dedup_radius,
+            memory_hours=dedup_hours,
+        )
+        self._tracks = tracking.incidents
+        changed = tracking.changed
+        for track, cluster in tracking.new_incidents:
+            if not first_snapshot:
+                await self._async_resolve_new_fire_place(track, cluster)
+            attrs = cluster.attrs() | {
+                ATTR_SOURCE_URL: snapshot.source_url,
+                ATTR_PRODUCT_TIME: snapshot.product_timestamp.isoformat(),
+            }
+            if not first_snapshot:
+                title, message = _notification_text(
+                    self.hass.config.language,
+                    cluster.nearest_settlement,
+                    cluster.distance_km,
+                    cluster.confidence,
+                )
+                attrs[ATTR_NOTIFICATION_TITLE] = title
+                attrs[ATTR_NOTIFICATION_MESSAGE] = message
+                new_fires.append(attrs)
+                self.hass.bus.async_fire(BUS_EVENT_NEW_FIRE, attrs)
 
         if first_snapshot:
             self._initialized = True
@@ -379,6 +345,19 @@ def _tracked_fire_clusters(
             frp_mw = float(track["frp_mw"])
             pixel_count = int(track["pixel_count"])
             peak_frp_mw = float(track["peak_frp_mw"])
+            lifecycle = FireLifecycle(str(track.get("lifecycle", "continuing")))
+            first_seen = _parse_dt(track.get("first_seen"))
+            last_seen = _parse_dt(track.get("last_seen"))
+            minimum_distance_km = float(
+                track.get(
+                    "minimum_distance_km",
+                    haversine_km(home_lat, home_lon, latitude, longitude),
+                )
+            )
+            maximum_frp_mw = float(track.get("maximum_frp_mw", peak_frp_mw))
+            maximum_pixel_count = int(track.get("maximum_pixel_count", pixel_count))
+            detections_total = int(track.get("detections_total", pixel_count))
+            maximum_confidence = float(track.get("maximum_confidence", confidence))
         except (KeyError, TypeError, ValueError):
             # Tracks written before v0.1.5 do not contain enough map metadata.
             continue
@@ -397,6 +376,14 @@ def _tracked_fire_clusters(
                 nearest_settlement=_optional_text(track.get("nearest_settlement")),
                 location_description=_optional_text(track.get("location_description")),
                 place_attribution=_optional_text(track.get("place_attribution")),
+                lifecycle=lifecycle,
+                first_seen=first_seen,
+                last_seen=last_seen,
+                minimum_distance_km=minimum_distance_km,
+                maximum_frp_mw=maximum_frp_mw,
+                maximum_pixel_count=maximum_pixel_count,
+                detections_total=detections_total,
+                maximum_confidence=maximum_confidence,
             )
         )
     return sorted(result, key=lambda cluster: cluster.distance_km)

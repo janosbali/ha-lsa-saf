@@ -73,6 +73,20 @@ class ActiveFireCountSensor(LsaSafEntity, SensorEntity):
     def native_value(self) -> int:
         return len(self.coordinator.data.active_clusters) if self.coordinator.data else 0
 
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        data = self.coordinator.data
+        if data is None:
+            return {"tracked_incidents": 0, "inactive_incidents": 0}
+        inactive = sum(
+            cluster.lifecycle is not None and cluster.lifecycle.value == "inactive"
+            for cluster in data.tracked_fires
+        )
+        return {
+            "tracked_incidents": len(data.tracked_fires),
+            "inactive_incidents": inactive,
+        }
+
 
 class RawPixelCountSensor(LsaSafEntity, SensorEntity):
     _attr_translation_key = "raw_pixel_count"

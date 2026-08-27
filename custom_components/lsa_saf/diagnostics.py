@@ -48,6 +48,18 @@ async def async_get_config_entry_diagnostics(
             "tracked_fire_count": (
                 len(active_data.tracked_fires) if active_data else None
             ),
+            "incident_lifecycle_counts": (
+                {
+                    state: sum(
+                        getattr(cluster, "lifecycle", None) is not None
+                        and cluster.lifecycle.value == state
+                        for cluster in active_data.tracked_fires
+                    )
+                    for state in ("new", "continuing", "inactive")
+                }
+                if active_data
+                else None
+            ),
             "raw_pixels_in_radius": (
                 active_data.raw_pixels_in_radius if active_data else None
             ),

@@ -62,6 +62,11 @@ async def test_diagnostics_are_bounded_and_redacted(hass) -> None:
 
     assert result["active_fire"]["active_cluster_count"] == 2
     assert result["active_fire"]["tracked_fire_count"] == 3
+    assert result["active_fire"]["incident_lifecycle_counts"] == {
+        "new": 0,
+        "continuing": 0,
+        "inactive": 0,
+    }
     assert result["active_fire"]["provider_status"] == "available"
     assert result["fire_risk"]["near_home_risk"] == "extreme"
     assert result["fire_risk"]["area_risk"] == "very_high"

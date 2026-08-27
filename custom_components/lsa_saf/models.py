@@ -10,11 +10,21 @@ from .const import (
     ATTR_ACQUIRED,
     ATTR_CONFIDENCE,
     ATTR_DISTANCE_KM,
+    ATTR_DURATION_MINUTES,
+    ATTR_FIRST_SEEN,
     ATTR_FRP_MW,
     ATTR_LATITUDE,
     ATTR_LOCATION_DESCRIPTION,
     ATTR_LONGITUDE,
     ATTR_NEAREST_SETTLEMENT,
+    ATTR_DETECTIONS_TOTAL,
+    ATTR_INCIDENT_ID,
+    ATTR_LAST_SEEN,
+    ATTR_LIFECYCLE,
+    ATTR_MAXIMUM_CONFIDENCE,
+    ATTR_MAXIMUM_FRP_MW,
+    ATTR_MAXIMUM_PIXEL_COUNT,
+    ATTR_MINIMUM_DISTANCE_KM,
     ATTR_PEAK_FRP_MW,
     ATTR_PIXEL_COUNT,
     ATTR_PLACE_ATTRIBUTION,
@@ -32,6 +42,15 @@ class ProviderStatus(StrEnum):
     NO_PRODUCT = "no_product"
     OUTAGE = "outage"
     AUTH_ERROR = "auth_error"
+
+
+class FireLifecycle(StrEnum):
+    """Lifecycle state of one tracked fire incident."""
+
+    NEW = "new"
+    CONTINUING = "continuing"
+    INACTIVE = "inactive"
+    ENDED = "ended"
 
 
 @dataclass(frozen=True, slots=True)
@@ -88,6 +107,14 @@ class FireCluster:
     nearest_settlement: str | None = None
     location_description: str | None = None
     place_attribution: str | None = None
+    lifecycle: FireLifecycle | None = None
+    first_seen: datetime | None = None
+    last_seen: datetime | None = None
+    minimum_distance_km: float | None = None
+    maximum_frp_mw: float | None = None
+    maximum_pixel_count: int | None = None
+    detections_total: int | None = None
+    maximum_confidence: float | None = None
 
     def attrs(self) -> dict[str, Any]:
         """Return bounded Home Assistant state attributes."""
@@ -102,6 +129,7 @@ class FireCluster:
         }
         if self.track_id is not None:
             attrs[ATTR_TRACK_ID] = self.track_id
+            attrs[ATTR_INCIDENT_ID] = self.track_id
         if self.peak_frp_mw is not None:
             attrs[ATTR_PEAK_FRP_MW] = round(self.peak_frp_mw, 2)
         if self.place_name is not None:
@@ -112,4 +140,24 @@ class FireCluster:
             attrs[ATTR_LOCATION_DESCRIPTION] = self.location_description
         if self.place_attribution is not None:
             attrs[ATTR_PLACE_ATTRIBUTION] = self.place_attribution
+        if self.lifecycle is not None:
+            attrs[ATTR_LIFECYCLE] = self.lifecycle.value
+        if self.first_seen is not None:
+            attrs[ATTR_FIRST_SEEN] = self.first_seen.isoformat()
+        if self.last_seen is not None:
+            attrs[ATTR_LAST_SEEN] = self.last_seen.isoformat()
+        if self.first_seen is not None and self.last_seen is not None:
+            attrs[ATTR_DURATION_MINUTES] = round(
+                max(0.0, (self.last_seen - self.first_seen).total_seconds() / 60), 1
+            )
+        if self.minimum_distance_km is not None:
+            attrs[ATTR_MINIMUM_DISTANCE_KM] = round(self.minimum_distance_km, 2)
+        if self.maximum_frp_mw is not None:
+            attrs[ATTR_MAXIMUM_FRP_MW] = round(self.maximum_frp_mw, 2)
+        if self.maximum_pixel_count is not None:
+            attrs[ATTR_MAXIMUM_PIXEL_COUNT] = self.maximum_pixel_count
+        if self.detections_total is not None:
+            attrs[ATTR_DETECTIONS_TOTAL] = self.detections_total
+        if self.maximum_confidence is not None:
+            attrs[ATTR_MAXIMUM_CONFIDENCE] = round(self.maximum_confidence, 3)
         return attrs

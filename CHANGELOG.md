@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.4.0
+
+- Replace the coordinator's inline same-fire deduplication with a separately
+  tested, provider-neutral persistent incident tracker.
+- Preserve stable incident IDs while tracking first/last seen time, duration,
+  current and minimum distance, current and maximum FRP, current and maximum
+  pixel count, total contributing detections, and maximum confidence.
+- Add explicit `new`, `continuing`, `inactive`, and `ended` lifecycle states.
+- Keep unmatched incidents inactive during the configured memory window instead
+  of immediately treating a missing detection as an ended fire.
+- Do not advance lifecycle or discard incident history during provider outages.
+- Migrate existing stored track records in place without generating duplicate
+  new-fire events or replacing existing map entity identities.
+- Expose bounded incident metadata on map entities and nearest-fire attributes,
+  plus lifecycle counts in privacy-safe diagnostics.
+- Avoid double-counting detections when Home Assistant polls the same satellite
+  product more than once.
+
 ## 0.3.1
 
 - Add an automation-friendly active-fire provider status sensor with

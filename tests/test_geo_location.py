@@ -7,6 +7,9 @@ from unittest.mock import Mock
 
 from custom_components.lsa_saf.const import (
     ATTR_LATITUDE,
+    ATTR_DETECTIONS_TOTAL,
+    ATTR_DURATION_MINUTES,
+    ATTR_LIFECYCLE,
     ATTR_LOCATION_DESCRIPTION,
     ATTR_LONGITUDE,
     ATTR_NEAREST_SETTLEMENT,
@@ -21,6 +24,7 @@ from custom_components.lsa_saf.coordinator import (
     FireCluster,
     _tracked_fire_clusters,
 )
+from custom_components.lsa_saf.models import FireLifecycle
 from custom_components.lsa_saf.geo_location import (
     LsaSafFireLocation,
     _async_remove_expired_entity,
@@ -38,6 +42,10 @@ def _cluster(**changes) -> FireCluster:
         "pixel_count": 2,
         "track_id": "abcdef123456",
         "peak_frp_mw": 51.0,
+        "lifecycle": FireLifecycle.CONTINUING,
+        "first_seen": datetime(2026, 8, 25, 20, 0, tzinfo=UTC),
+        "last_seen": datetime(2026, 8, 25, 20, 20, tzinfo=UTC),
+        "detections_total": 5,
     }
     values.update(changes)
     return FireCluster(**values)
@@ -65,6 +73,9 @@ def test_cluster_attributes_include_tracking_metadata() -> None:
 
     assert attrs[ATTR_TRACK_ID] == "abcdef123456"
     assert attrs[ATTR_PEAK_FRP_MW] == 51.0
+    assert attrs[ATTR_LIFECYCLE] == "continuing"
+    assert attrs[ATTR_DURATION_MINUTES] == 20.0
+    assert attrs[ATTR_DETECTIONS_TOTAL] == 5
 
 
 def test_map_entity_exposes_location_distance_and_details() -> None:

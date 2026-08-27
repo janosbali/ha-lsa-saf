@@ -283,9 +283,43 @@ The domain is intentionally the generic `lsa_saf`, not `lsa_saf_mtg_fire`, so fu
 
 ## Roadmap
 
-### v0.3
+### v0.4
 
-- persistent fire-incident tracking as a separately tested follow-up
+- trend engine for FRP, pixel activity, and Home-relative distance
+- smoothed time windows, minimum sample rules, tolerances, and hysteresis
+
+### Multi-source detection and incident verification
+
+- add NASA FIRMS as an optional secondary active-fire provider
+- correlate nearby LSA SAF and FIRMS detections by location and acquisition time
+- expose a provider-neutral confirmation level instead of treating either
+  satellite source as authoritative on its own
+- distinguish detections seen by multiple satellites from single-source,
+  low-intensity, stale, or otherwise uncertain thermal anomalies
+- make the displayed fire-history window configurable so providers with
+  different retention periods can be compared consistently
+- preserve source attribution, observation time, resolution, confidence, and
+  FRP for every contributing detection
+
+### News and official-report enrichment
+
+- research a candidate catalogue of local, national, and cross-border fire
+  information sources, including fire-service and civil-protection feeds,
+  emergency alerts, public incident APIs, RSS/Atom feeds, and reputable news
+  outlets
+- assess each source for geographic coverage, update frequency, structured-data
+  availability, authentication and rate limits, licensing and redistribution
+  terms, reliability, language, and long-term operational suitability
+- ingest only explicitly enabled sources through isolated provider adapters;
+  do not scrape sites whose terms or technical controls prohibit it
+- match reports to satellite detections using time, coordinates, settlement
+  names, distance, and incident keywords while retaining the original source
+  link and publication time
+- show corroborating reports as context and calculate an explainable incident
+  confidence; never present an automatically matched article as definitive
+  emergency confirmation
+- add deduplication, caching, request limits, safe URL validation, content-size
+  limits, redacted logging, and tests before enabling network news enrichment
 
 ### Later
 
