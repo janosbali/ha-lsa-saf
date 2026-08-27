@@ -6,15 +6,16 @@ from types import SimpleNamespace
 
 import pytest
 
-from custom_components.lsa_saf.diagnostics import (
-    async_get_config_entry_diagnostics,
-)
+from custom_components.lsa_saf.const import CONF_PASSWORD, CONF_USERNAME
+from custom_components.lsa_saf.diagnostics import async_get_config_entry_diagnostics
 from custom_components.lsa_saf.products.fire_risk import FireRiskDay, FireRiskForecast
 
 
 @pytest.mark.asyncio
 async def test_diagnostics_are_bounded_and_redacted(hass) -> None:
     """Diagnostics expose health/counts but no secrets or precise locations."""
+    account_value = "test-account"
+    credential_value = "-".join(("test", "credential"))
     product_time = datetime(2026, 8, 27, 16, 20, tzinfo=UTC)
     generated_at = datetime(2026, 8, 27, 16, 21, tzinfo=UTC)
     active_data = SimpleNamespace(
@@ -35,7 +36,7 @@ async def test_diagnostics_are_bounded_and_redacted(hass) -> None:
         radius_km=100,
     )
     entry = SimpleNamespace(
-        data={"username": "private-user", "password": "private-password"},
+        data={CONF_USERNAME: account_value, CONF_PASSWORD: credential_value},
         options={"radius_km": 25.0},
         runtime_data=SimpleNamespace(
             coordinator=SimpleNamespace(data=active_data, last_update_success=True),
@@ -53,8 +54,8 @@ async def test_diagnostics_are_bounded_and_redacted(hass) -> None:
     assert result["active_fire"]["tracked_fire_count"] == 3
     assert result["fire_risk"]["near_home_risk"] == "extreme"
     assert result["fire_risk"]["area_risk"] == "very_high"
-    assert "private-user" not in serialized
-    assert "private-password" not in serialized
+    assert account_value not in serialized
+    assert credential_value not in serialized
     assert "46.123456" not in serialized
     assert "18.654321" not in serialized
     assert "example.invalid" not in serialized
@@ -63,8 +64,9 @@ async def test_diagnostics_are_bounded_and_redacted(hass) -> None:
 @pytest.mark.asyncio
 async def test_diagnostics_handle_coordinators_without_data(hass) -> None:
     """Diagnostics remain downloadable before optional forecast data arrives."""
+    credential_value = "-".join(("test", "credential"))
     entry = SimpleNamespace(
-        data={"username": "user", "password": "password"},
+        data={CONF_USERNAME: "test-account", CONF_PASSWORD: credential_value},
         options={},
         runtime_data=SimpleNamespace(
             coordinator=SimpleNamespace(data=None, last_update_success=False),
