@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.3.1
+
+- Add an automation-friendly active-fire provider status sensor with
+  initializing, available, delayed, no-product, outage, and authentication
+  states.
+- Keep the status sensor available during provider failures and expose the
+  provider, satellite, product, product timestamp, and local receipt timestamp.
+- Classify MTG products older than 60 minutes as delayed while retaining their
+  detections instead of treating valid stale data as an empty current result.
+- Normalize authentication, no-product, and provider failures at the provider
+  boundary so the common coordinator no longer depends on MTG exceptions.
+- Preserve the last successful coordinator data and all stored tracks when a
+  refresh fails.
+- Extend privacy-safe diagnostics and all six translations with provider health.
+
 ## 0.3.0
 
 - Add a provider-neutral `FireDetection` model with optional confidence,

@@ -8,6 +8,7 @@ import pytest
 
 from custom_components.lsa_saf.const import CONF_PASSWORD, CONF_USERNAME
 from custom_components.lsa_saf.diagnostics import async_get_config_entry_diagnostics
+from custom_components.lsa_saf.models import ProviderStatus
 from custom_components.lsa_saf.products.fire_risk import FireRiskDay, FireRiskForecast
 
 
@@ -39,7 +40,16 @@ async def test_diagnostics_are_bounded_and_redacted(hass) -> None:
         data={CONF_USERNAME: account_value, CONF_PASSWORD: credential_value},
         options={"radius_km": 25.0},
         runtime_data=SimpleNamespace(
-            coordinator=SimpleNamespace(data=active_data, last_update_success=True),
+            coordinator=SimpleNamespace(
+                data=active_data,
+                last_update_success=True,
+                provider_status=ProviderStatus.AVAILABLE,
+                provider_name="eumetsat_lsa_saf",
+                satellite="mtg",
+                provider_product="MTFRPPixel",
+                product_timestamp=product_time,
+                received_timestamp=generated_at,
+            ),
             fire_risk_coordinator=SimpleNamespace(
                 data=risk_data, last_update_success=True
             ),
@@ -52,6 +62,7 @@ async def test_diagnostics_are_bounded_and_redacted(hass) -> None:
 
     assert result["active_fire"]["active_cluster_count"] == 2
     assert result["active_fire"]["tracked_fire_count"] == 3
+    assert result["active_fire"]["provider_status"] == "available"
     assert result["fire_risk"]["near_home_risk"] == "extreme"
     assert result["fire_risk"]["area_risk"] == "very_high"
     assert account_value not in serialized
@@ -69,7 +80,16 @@ async def test_diagnostics_handle_coordinators_without_data(hass) -> None:
         data={CONF_USERNAME: "test-account", CONF_PASSWORD: credential_value},
         options={},
         runtime_data=SimpleNamespace(
-            coordinator=SimpleNamespace(data=None, last_update_success=False),
+            coordinator=SimpleNamespace(
+                data=None,
+                last_update_success=False,
+                provider_status=ProviderStatus.INITIALIZING,
+                provider_name=None,
+                satellite=None,
+                provider_product=None,
+                product_timestamp=None,
+                received_timestamp=None,
+            ),
             fire_risk_coordinator=SimpleNamespace(
                 data=None, last_update_success=False
             ),

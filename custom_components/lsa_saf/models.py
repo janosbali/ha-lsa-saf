@@ -26,10 +26,12 @@ from .const import (
 class ProviderStatus(StrEnum):
     """Availability state reported by an active-fire provider."""
 
+    INITIALIZING = "initializing"
     AVAILABLE = "available"
     DELAYED = "delayed"
     NO_PRODUCT = "no_product"
     OUTAGE = "outage"
+    AUTH_ERROR = "auth_error"
 
 
 @dataclass(frozen=True, slots=True)

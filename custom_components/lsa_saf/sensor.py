@@ -11,6 +11,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import LsaSafConfigEntry
 from .entity import LsaSafEntity, LsaSafFireRiskEntity
+from .models import ProviderStatus
 from .products.fire_risk import WMS_URL
 
 
@@ -24,6 +25,7 @@ async def async_setup_entry(
             RawPixelCountSensor(entry),
             ProductTimeSensor(entry),
             ProductAgeSensor(entry),
+            ProviderStatusSensor(entry),
             FireRiskTodaySensor(entry),
             FireRiskAreaMaximumSensor(entry),
             FireRiskUpdateSensor(entry),
@@ -122,6 +124,46 @@ class ProductAgeSensor(LsaSafEntity, SensorEntity):
         if not self.coordinator.data:
             return None
         return max(0, (datetime.now(UTC) - self.coordinator.data.product_time).total_seconds() / 60)
+
+
+class ProviderStatusSensor(LsaSafEntity, SensorEntity):
+    """Expose provider health even when the latest refresh failed."""
+
+    _attr_translation_key = "provider_status"
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = [status.value for status in ProviderStatus]
+    _attr_icon = "mdi:satellite-uplink"
+
+    def __init__(self, entry: LsaSafConfigEntry) -> None:
+        super().__init__(entry)
+        self._attr_unique_id = f"{entry.entry_id}_provider_status"
+
+    @property
+    def available(self) -> bool:
+        """The health entity remains useful during provider failures."""
+        return True
+
+    @property
+    def native_value(self) -> str:
+        return self.coordinator.provider_status.value
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return {
+            "provider": self.coordinator.provider_name,
+            "satellite": self.coordinator.satellite,
+            "product": self.coordinator.provider_product,
+            "product_timestamp": (
+                self.coordinator.product_timestamp.isoformat()
+                if self.coordinator.product_timestamp
+                else None
+            ),
+            "received_timestamp": (
+                self.coordinator.received_timestamp.isoformat()
+                if self.coordinator.received_timestamp
+                else None
+            ),
+        }
 
 
 class FireRiskTodaySensor(LsaSafFireRiskEntity, SensorEntity):

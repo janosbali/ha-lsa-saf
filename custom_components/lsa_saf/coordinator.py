@@ -13,7 +13,6 @@ from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .api import LsaSafAuthError, LsaSafError
 from .clustering import cluster_detections, haversine_km
 from .const import (
     ATTR_NOTIFICATION_MESSAGE,
@@ -41,8 +40,13 @@ from .geocoding import (
     PlaceLookupError,
     PlaceNameResolver,
 )
-from .models import FireCluster, FireDetection
-from .providers.base import ActiveFireProvider
+from .models import FireCluster, FireDetection, ProviderStatus
+from .providers.base import (
+    ActiveFireProvider,
+    ProviderAuthenticationError,
+    ProviderNoDataError,
+    ProviderUnavailableError,
+)
 
 _LOGGER = logging.getLogger(__name__)
 STORE_VERSION = 1
@@ -73,6 +77,12 @@ class LsaSafCoordinator(DataUpdateCoordinator[CoordinatorData]):
     ) -> None:
         self.entry = entry
         self.provider = provider
+        self.provider_status = ProviderStatus.INITIALIZING
+        self.provider_name: str | None = None
+        self.satellite: str | None = None
+        self.provider_product: str | None = None
+        self.product_timestamp: datetime | None = None
+        self.received_timestamp: datetime | None = None
         self._store = Store(hass, STORE_VERSION, f"{DOMAIN}.{entry.entry_id}.tracks")
         self._tracks: list[dict[str, Any]] = []
         self._store_loaded = False
@@ -108,10 +118,22 @@ class LsaSafCoordinator(DataUpdateCoordinator[CoordinatorData]):
     async def _async_update_data(self) -> CoordinatorData:
         try:
             snapshot = await self.provider.async_fetch_latest()
-        except LsaSafAuthError as err:
+        except ProviderAuthenticationError as err:
+            self._set_provider_failure_status(ProviderStatus.AUTH_ERROR)
             raise ConfigEntryAuthFailed from err
-        except LsaSafError as err:
+        except ProviderNoDataError as err:
+            self._set_provider_failure_status(ProviderStatus.NO_PRODUCT)
             raise UpdateFailed(str(err)) from err
+        except ProviderUnavailableError as err:
+            self._set_provider_failure_status(ProviderStatus.OUTAGE)
+            raise UpdateFailed(str(err)) from err
+
+        self.provider_status = snapshot.status
+        self.provider_name = snapshot.provider
+        self.satellite = snapshot.satellite
+        self.provider_product = snapshot.product
+        self.product_timestamp = snapshot.product_timestamp
+        self.received_timestamp = snapshot.received_timestamp
 
         radius_km = float(self.entry.options.get(CONF_RADIUS_KM, DEFAULT_RADIUS_KM))
         min_conf = float(self.entry.options.get(CONF_MIN_CONFIDENCE, DEFAULT_MIN_CONFIDENCE))
@@ -226,6 +248,13 @@ class LsaSafCoordinator(DataUpdateCoordinator[CoordinatorData]):
             new_fires=new_fires,
             raw_pixels_in_radius=len(filtered),
         )
+
+    def _set_provider_failure_status(self, status: ProviderStatus) -> None:
+        """Notify the health sensor when consecutive failures change type."""
+        if self.provider_status is status:
+            return
+        self.provider_status = status
+        self.async_update_listeners()
 
     async def _async_resolve_new_fire_place(
         self, track: dict[str, Any], cluster: FireCluster

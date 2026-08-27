@@ -81,6 +81,17 @@
       "product_age": {
         "name": "Fire product age"
       },
+      "provider_status": {
+        "name": "Active-fire data status",
+        "state": {
+          "initializing": "Initializing",
+          "available": "Available",
+          "delayed": "Delayed",
+          "no_product": "No current product",
+          "outage": "Provider outage",
+          "auth_error": "Authentication error"
+        }
+      },
       "fire_risk_today": {
         "name": "Fire risk near Home",
         "state": {

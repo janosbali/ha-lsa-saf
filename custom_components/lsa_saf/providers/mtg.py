@@ -1,15 +1,22 @@
 """EUMETSAT MTG active-fire provider adapter."""
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
+from ..api import LsaSafAuthError, LsaSafError
 from ..models import FireDetection, ProviderSnapshot, ProviderStatus
-from ..products.fire import ActiveFireClient
+from ..products.fire import ActiveFireClient, LsaSafNoDataError
+from .base import (
+    ProviderAuthenticationError,
+    ProviderNoDataError,
+    ProviderUnavailableError,
+)
 
 PROVIDER = "eumetsat_lsa_saf"
 SATELLITE = "mtg"
 PRODUCT = "MTFRPPixel"
 SOURCE_RESOLUTION_KM = 1.0
+DELAY_THRESHOLD = timedelta(minutes=60)
 
 
 class MtgActiveFireProvider:
@@ -20,7 +27,14 @@ class MtgActiveFireProvider:
 
     async def async_fetch_latest(self) -> ProviderSnapshot:
         """Fetch the latest MTG product and normalize all valid pixels."""
-        product = await self._client.async_fetch_latest()
+        try:
+            product = await self._client.async_fetch_latest()
+        except LsaSafAuthError as err:
+            raise ProviderAuthenticationError(str(err)) from err
+        except LsaSafNoDataError as err:
+            raise ProviderNoDataError(str(err)) from err
+        except LsaSafError as err:
+            raise ProviderUnavailableError(str(err)) from err
         received = datetime.now(UTC)
         detections = tuple(
             FireDetection(
@@ -49,7 +63,11 @@ class MtgActiveFireProvider:
             product=PRODUCT,
             product_timestamp=product.product_time,
             received_timestamp=received,
-            status=ProviderStatus.AVAILABLE,
+            status=(
+                ProviderStatus.DELAYED
+                if received - product.product_time > DELAY_THRESHOLD
+                else ProviderStatus.AVAILABLE
+            ),
             source_url=product.url,
             filename=product.filename,
             detections=detections,

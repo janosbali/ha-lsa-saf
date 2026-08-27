@@ -81,6 +81,17 @@
       "product_age": {
         "name": "Tűztermék kora"
       },
+      "provider_status": {
+        "name": "Aktívtűz-adatok állapota",
+        "state": {
+          "initializing": "Indítás",
+          "available": "Elérhető",
+          "delayed": "Késik",
+          "no_product": "Nincs friss termék",
+          "outage": "Szolgáltatói kiesés",
+          "auth_error": "Hitelesítési hiba"
+        }
+      },
       "fire_risk_today": {
         "name": "Tűzkockázat az otthon közelében",
         "state": {

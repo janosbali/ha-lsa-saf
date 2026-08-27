@@ -28,8 +28,19 @@ async def async_get_config_entry_diagnostics(
         },
         "active_fire": {
             "last_update_success": active.last_update_success,
+            "provider_status": active.provider_status.value,
+            "provider": active.provider_name,
+            "satellite": active.satellite,
+            "product": active.provider_product,
             "product_time": (
-                active_data.product_time.isoformat() if active_data else None
+                active.product_timestamp.isoformat()
+                if active.product_timestamp
+                else None
+            ),
+            "received_time": (
+                active.received_timestamp.isoformat()
+                if active.received_timestamp
+                else None
             ),
             "active_cluster_count": (
                 len(active_data.active_clusters) if active_data else None

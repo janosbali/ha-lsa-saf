@@ -20,7 +20,7 @@ FORECAST_DAYS = 10
 TIMEOUT = ClientTimeout(total=20, connect=5, sock_read=15)
 MAX_JSON_BYTES = 32 * 1024
 MAX_MAP_BYTES = 2 * 1024 * 1024
-USER_AGENT = "ha-lsa-saf/0.3.0 (https://github.com/janosbali/ha-lsa-saf)"
+USER_AGENT = "ha-lsa-saf/0.3.1 (https://github.com/janosbali/ha-lsa-saf)"
 EUROPE_BOUNDS = (-9.975, 34.475, 45.525, 69.975)
 LOCAL_SAMPLE_RADIUS_KM = 10.0
 

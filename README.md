@@ -40,6 +40,8 @@ It checks for the newest deterministic 10-minute product filename, parses the fi
 - `sensor.*_fire_pixels_in_radius` – raw MTG fire pixels after filters
 - `sensor.*_latest_fire_product_time` – time of the latest processed LSA SAF product
 - `sensor.*_fire_product_age` – age of the latest product in minutes
+- `sensor.*_active_fire_data_status` – provider health and freshness, including
+  delayed, no-product and outage states
 - `event.*_new_active_fire` – Home Assistant Event entity for a newly deduplicated fire
 - `geo_location.*` – one live map marker per active fire cluster
 - `number.*_active_fire_monitoring_radius` – dashboard-adjustable monitoring radius
@@ -99,6 +101,23 @@ Event data includes:
 - `track_id`
 - `product_time`
 - `source_url`
+
+### Data freshness and provider health
+
+An empty active-fire cluster count means that a current satellite product was
+successfully processed and contained no matching detections. It is deliberately
+different from a provider failure. The **Active-fire data status** sensor reports:
+
+- `available` for a current valid product;
+- `delayed` when the newest valid MTG product is more than 60 minutes old;
+- `no_product` when no recent MTFRPPixel product can be found;
+- `outage` when the provider cannot return a safe, valid response;
+- `auth_error` when saved credentials require reauthentication.
+
+The status attributes include the provider, satellite, product timestamp and
+the time Home Assistant received the product. Failed refreshes retain the last
+successful data and persistent fire tracks; they are never converted into a
+false zero-fire observation.
 
 ## Installation through HACS
 
@@ -266,8 +285,6 @@ The domain is intentionally the generic `lsa_saf`, not `lsa_saf_mtg_fire`, so fu
 
 ### v0.3
 
-- provider freshness/status diagnostics
-- explicit distinction between no fire and no current satellite data
 - persistent fire-incident tracking as a separately tested follow-up
 
 ### Later

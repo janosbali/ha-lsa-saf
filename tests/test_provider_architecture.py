@@ -1,24 +1,36 @@
 """Regression tests for the provider-neutral active-fire pipeline."""
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
 
+from custom_components.lsa_saf.api import LsaSafAuthError, LsaSafError
 from custom_components.lsa_saf.clustering import cluster_detections
 from custom_components.lsa_saf.models import (
     FireDetection,
     ProviderSnapshot,
     ProviderStatus,
 )
-from custom_components.lsa_saf.products.fire import FirePixel, Product
+from custom_components.lsa_saf.products.fire import (
+    FirePixel,
+    LsaSafNoDataError,
+    Product,
+)
+from custom_components.lsa_saf.providers.base import (
+    ProviderAuthenticationError,
+    ProviderNoDataError,
+    ProviderUnavailableError,
+)
 from custom_components.lsa_saf.providers.mtg import (
     PRODUCT,
     PROVIDER,
     SATELLITE,
     MtgActiveFireProvider,
 )
+from custom_components.lsa_saf.sensor import ProviderStatusSensor
 
 
 def _detection(**changes) -> FireDetection:
@@ -57,8 +69,8 @@ def test_provider_snapshot_is_immutable() -> None:
 @pytest.mark.asyncio
 async def test_mtg_adapter_preserves_product_values() -> None:
     """The MTG adapter maps every existing parser value without loss."""
-    acquired = datetime(2026, 8, 27, 16, 20, 30, tzinfo=UTC)
-    product_time = datetime(2026, 8, 27, 16, 20, tzinfo=UTC)
+    product_time = datetime.now(UTC)
+    acquired = product_time + timedelta(seconds=30)
     pixel = FirePixel(
         latitude=46.25,
         longitude=20.14,
@@ -92,6 +104,42 @@ async def test_mtg_adapter_preserves_product_values() -> None:
     assert detection.confidence == pixel.confidence
     assert detection.fire_area_km2 == pixel.pixel_size_km2
     assert detection.source_detection_id.endswith(":100:200")
+
+
+@pytest.mark.asyncio
+async def test_mtg_adapter_marks_old_products_as_delayed() -> None:
+    """A valid but old product is distinct from a current product or outage."""
+    client = AsyncMock()
+    client.async_fetch_latest.return_value = Product(
+        filename="old.csv.gz",
+        url="https://example.invalid/old",
+        product_time=datetime.now(UTC) - timedelta(hours=2),
+        pixels=[],
+    )
+
+    snapshot = await MtgActiveFireProvider(client).async_fetch_latest()
+
+    assert snapshot.status is ProviderStatus.DELAYED
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("source_error", "provider_error"),
+    [
+        (LsaSafAuthError("auth"), ProviderAuthenticationError),
+        (LsaSafNoDataError("missing"), ProviderNoDataError),
+        (LsaSafError("outage"), ProviderUnavailableError),
+    ],
+)
+async def test_mtg_adapter_normalizes_provider_errors(
+    source_error: Exception, provider_error: type[Exception]
+) -> None:
+    """The common coordinator does not depend on MTG-specific exceptions."""
+    client = AsyncMock()
+    client.async_fetch_latest.side_effect = source_error
+
+    with pytest.raises(provider_error):
+        await MtgActiveFireProvider(client).async_fetch_latest()
 
 
 def test_common_clustering_preserves_mtg_aggregation() -> None:
@@ -130,3 +178,28 @@ def test_common_model_accepts_provider_specific_missing_values() -> None:
 
     assert detection.frp_mw is None
     assert detection.confidence is None
+
+
+def test_provider_status_sensor_remains_available_during_outage() -> None:
+    """Automations can distinguish an outage from a valid zero-fire result."""
+    product_time = datetime(2026, 8, 27, 16, 20, tzinfo=UTC)
+    received_time = datetime(2026, 8, 27, 16, 22, tzinfo=UTC)
+    entity = object.__new__(ProviderStatusSensor)
+    entity.coordinator = SimpleNamespace(
+        provider_status=ProviderStatus.OUTAGE,
+        provider_name=PROVIDER,
+        satellite=SATELLITE,
+        provider_product=PRODUCT,
+        product_timestamp=product_time,
+        received_timestamp=received_time,
+    )
+
+    assert entity.available is True
+    assert entity.native_value == "outage"
+    assert entity.extra_state_attributes == {
+        "provider": PROVIDER,
+        "satellite": SATELLITE,
+        "product": PRODUCT,
+        "product_timestamp": product_time.isoformat(),
+        "received_timestamp": received_time.isoformat(),
+    }

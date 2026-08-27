@@ -52,6 +52,7 @@
       "raw_pixel_count": {"name": "Píxeles de incendio dentro del radio"},
       "product_time": {"name": "Hora del último producto de incendios"},
       "product_age": {"name": "Antigüedad del producto de incendios"},
+      "provider_status": {"name": "Estado de los datos de incendios activos", "state": {"initializing": "Inicializando", "available": "Disponible", "delayed": "Retrasado", "no_product": "Sin producto actual", "outage": "Interrupción del proveedor", "auth_error": "Error de autenticación"}},
       "fire_risk_today": {"name": "Riesgo de incendio cerca de Casa", "state": {"low": "Bajo", "moderate": "Moderado", "high": "Alto", "very_high": "Muy alto", "extreme": "Extremo", "unknown": "Desconocido"}},
       "fire_risk_area_maximum": {"name": "Mayor riesgo de incendio en la zona vigilada", "state": {"low": "Bajo", "moderate": "Moderado", "high": "Alto", "very_high": "Muy alto", "extreme": "Extremo", "unknown": "Desconocido"}},
       "fire_risk_update": {"name": "Última actualización de la previsión del riesgo de incendio"}
