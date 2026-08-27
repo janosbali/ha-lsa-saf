@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.7
+
+- Add bundled Home Assistant brand icons for normal and high-DPI displays.
+- Add complete French, German, Italian, and Spanish translations.
+- Extend localized calendar forecast events to all supported languages.
+
 ## 0.2.6
 
 - Remove expired fire-location entities directly from Home Assistant's entity

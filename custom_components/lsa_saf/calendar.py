@@ -24,6 +24,30 @@ RISK_LABELS = {
         "unknown": "Ismeretlen", "title": "Tűzkockázat",
         "description": "LSA SAF FRMv3 tűzkockázati előrejelzés az otthon közelében",
     },
+    "de": {
+        "low": "Niedrig", "moderate": "Mäßig", "high": "Hoch",
+        "very_high": "Sehr hoch", "extreme": "Extrem", "unknown": "Unbekannt",
+        "title": "Waldbrandgefahr",
+        "description": "LSA SAF FRMv3-Waldbrandgefahrenvorhersage in der Nähe von Zuhause",
+    },
+    "es": {
+        "low": "Bajo", "moderate": "Moderado", "high": "Alto",
+        "very_high": "Muy alto", "extreme": "Extremo", "unknown": "Desconocido",
+        "title": "Riesgo de incendio",
+        "description": "Previsión LSA SAF FRMv3 del riesgo de incendio cerca de Casa",
+    },
+    "fr": {
+        "low": "Faible", "moderate": "Modéré", "high": "Élevé",
+        "very_high": "Très élevé", "extreme": "Extrême", "unknown": "Inconnu",
+        "title": "Risque d’incendie",
+        "description": "Prévision LSA SAF FRMv3 du risque d’incendie près du domicile",
+    },
+    "it": {
+        "low": "Basso", "moderate": "Moderato", "high": "Alto",
+        "very_high": "Molto alto", "extreme": "Estremo", "unknown": "Sconosciuto",
+        "title": "Rischio di incendio",
+        "description": "Previsione LSA SAF FRMv3 del rischio di incendio vicino a Casa",
+    },
 }
 
 

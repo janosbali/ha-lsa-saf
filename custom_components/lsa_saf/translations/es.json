@@ -1,0 +1,65 @@
+{
+  "title": "LSA SAF",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Conectar con el servicio de datos LSA SAF",
+        "description": "Introduce las credenciales de tu cuenta gratuita de LSA SAF Data Service. La integración ofrece detección de incendios activos MTG y la previsión FRMv3 del riesgo de incendio.",
+        "data": {"username": "Nombre de usuario", "password": "Contraseña"},
+        "data_description": {"username": "Nombre de usuario de LSA SAF Data Service", "password": "Contraseña de LSA SAF Data Service"}
+      },
+      "reauth_confirm": {
+        "title": "Se requiere una nueva autenticación",
+        "description": "LSA SAF Data Service ha rechazado las credenciales guardadas. Introduce el nombre de usuario y la contraseña actual de la misma cuenta.",
+        "data": {"username": "Nombre de usuario", "password": "Contraseña"},
+        "data_description": {"username": "Nombre de usuario de la cuenta LSA SAF configurada originalmente", "password": "Contraseña actual de LSA SAF Data Service"}
+      }
+    },
+    "error": {"cannot_connect": "No se pudo conectar con LSA SAF Data Service", "invalid_auth": "Nombre de usuario o contraseña no válidos"},
+    "abort": {"already_configured": "Esta cuenta de LSA SAF ya está configurada", "reauth_successful": "Credenciales actualizadas correctamente", "wrong_account": "Las nuevas credenciales pertenecen a otra cuenta de LSA SAF"}
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opciones de vigilancia de incendios activos",
+        "data": {
+          "radius_km": "Radio de vigilancia",
+          "fire_risk_radius_km": "Radio de previsión del riesgo de incendio",
+          "min_confidence": "Confianza mínima de detección",
+          "min_frp_mw": "Potencia radiativa mínima del incendio",
+          "scan_interval_minutes": "Intervalo de comprobación",
+          "dedup_radius_km": "Radio de coincidencia del mismo incendio",
+          "dedup_hours": "Tiempo de memoria del mismo incendio",
+          "resolve_place_names": "Mostrar lugares cercanos en el mapa"
+        },
+        "data_description": {
+          "radius_km": "Solo se tienen en cuenta las detecciones MTG situadas a esta distancia de la ubicación Casa de Home Assistant.",
+          "fire_risk_radius_km": "Zona mostrada en el mapa FRMv3 y analizada para determinar el mayor riesgo regional. No modifica las alertas de incendios activos.",
+          "min_confidence": "0 incluye todas las detecciones; 1 es el filtro más estricto.",
+          "min_frp_mw": "Ignora las detecciones cuya FRP en MW sea inferior a este valor.",
+          "scan_interval_minutes": "Frecuencia con la que Home Assistant busca un producto MTG de diez minutos más reciente.",
+          "dedup_radius_km": "Una detección cercana a un incendio visto recientemente se considera el mismo incendio y no genera otro evento.",
+          "dedup_hours": "Tiempo durante el que se suprimen los eventos repetidos del mismo incendio en la misma zona.",
+          "resolve_place_names": "Busca localmente el asentamiento más cercano mediante la base de datos GeoNames cities500 incluida. No se envían coordenadas a servicios externos."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "nearest_fire": {"name": "Incendio activo más cercano"},
+      "active_fire_count": {"name": "Grupos de incendios activos"},
+      "raw_pixel_count": {"name": "Píxeles de incendio dentro del radio"},
+      "product_time": {"name": "Hora del último producto de incendios"},
+      "product_age": {"name": "Antigüedad del producto de incendios"},
+      "fire_risk_today": {"name": "Riesgo de incendio cerca de Casa", "state": {"low": "Bajo", "moderate": "Moderado", "high": "Alto", "very_high": "Muy alto", "extreme": "Extremo", "unknown": "Desconocido"}},
+      "fire_risk_area_maximum": {"name": "Mayor riesgo de incendio en la zona vigilada", "state": {"low": "Bajo", "moderate": "Moderado", "high": "Alto", "very_high": "Muy alto", "extreme": "Extremo", "unknown": "Desconocido"}},
+      "fire_risk_update": {"name": "Última actualización de la previsión del riesgo de incendio"}
+    },
+    "event": {"new_fire": {"name": "Nuevo incendio activo"}, "fire_risk_increase": {"name": "Aumento del riesgo de incendio"}},
+    "select": {"fire_risk_day": {"name": "Día de previsión del riesgo de incendio", "state": {"today": "Hoy", "tomorrow": "Mañana", "in_2_days": "Dentro de 2 días", "in_3_days": "Dentro de 3 días", "in_4_days": "Dentro de 4 días", "in_5_days": "Dentro de 5 días", "in_6_days": "Dentro de 6 días", "in_7_days": "Dentro de 7 días", "in_8_days": "Dentro de 8 días", "in_9_days": "Dentro de 9 días"}}},
+    "camera": {"fire_risk_map": {"name": "Mapa de previsión del riesgo de incendio"}},
+    "calendar": {"fire_risk_forecast": {"name": "Previsión del riesgo de incendio a 10 días"}},
+    "number": {"monitoring_radius": {"name": "Radio de vigilancia de incendios activos"}, "fire_risk_radius": {"name": "Radio de previsión del riesgo de incendio"}}
+  }
+}
