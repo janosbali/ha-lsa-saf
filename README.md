@@ -237,9 +237,11 @@ extent and regional maximum-risk sampling.
 custom_components/lsa_saf/
 ├── __init__.py
 ├── api.py                 # shared Data Service authentication/client base
+├── models.py              # provider-neutral detections and clusters
+├── clustering.py          # common distance and spatial clustering
 ├── config_flow.py
 ├── const.py
-├── coordinator.py         # v0.1 active-fire coordinator
+├── coordinator.py         # common active-fire processing pipeline
 ├── diagnostics.py         # privacy-safe troubleshooting summary
 ├── fire_risk_coordinator.py
 ├── camera.py              # selected FRMv3 forecast map
@@ -249,6 +251,9 @@ custom_components/lsa_saf/
 ├── geo_location.py       # live active-fire map markers
 ├── number.py
 ├── select.py              # FRMv3 forecast day 0–9
+├── providers/
+│   ├── base.py            # typed provider interface
+│   └── mtg.py             # MTFRPPixel → FireDetection adapter
 └── products/
     ├── fire.py            # MTFRPPixel parser + client (implemented)
     ├── fire_risk.py       # bounded FRMv3 WMS client and parser
@@ -261,10 +266,9 @@ The domain is intentionally the generic `lsa_saf`, not `lsa_saf_mtg_fire`, so fu
 
 ### v0.3
 
-- provider-neutral `FireDetection` model and provider interface
-- MTG adapter with unchanged active-fire behaviour
 - provider freshness/status diagnostics
-- persistent fire-incident tracking as a subsequent, separately tested step
+- explicit distinction between no fire and no current satellite data
+- persistent fire-incident tracking as a separately tested follow-up
 
 ### Later
 

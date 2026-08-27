@@ -12,7 +12,14 @@ from typing import Any
 
 from aiohttp import ClientError, ClientResponseError
 
-from ..api import REQUEST_TIMEOUT, LsaSafApi, LsaSafAuthError, LsaSafError, validate_service_url
+from ..api import (
+    REQUEST_TIMEOUT,
+    LsaSafApi,
+    LsaSafAuthError,
+    LsaSafError,
+    validate_service_url,
+)
+from ..clustering import haversine_km
 
 
 class LsaSafNoDataError(LsaSafError):
@@ -199,17 +206,6 @@ async def _read_limited(response: Any) -> bytes:
         if len(payload) > MAX_COMPRESSED_BYTES:
             raise LsaSafError("Compressed MTFRPPixel product exceeds the safety limit")
     return bytes(payload)
-
-
-def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    """Return great-circle distance in km."""
-    radius = 6371.0088
-    p1 = math.radians(lat1)
-    p2 = math.radians(lat2)
-    dphi = math.radians(lat2 - lat1)
-    dlambda = math.radians(lon2 - lon1)
-    a = math.sin(dphi / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dlambda / 2) ** 2
-    return radius * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
 
 def _float_or_none(value: Any) -> float | None:

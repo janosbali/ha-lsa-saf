@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.3.0
+
+- Add a provider-neutral `FireDetection` model with optional confidence,
+  classification, quality, temperature, area, and source metadata.
+- Add a common `ProviderSnapshot` and typed active-fire provider interface.
+- Move MTG product normalization into a dedicated provider adapter while
+  retaining the existing secure MTFRPPixel parser and authentication flow.
+- Move distance and spatial clustering into a provider-neutral processing
+  module without changing MTG radius, centroid, FRP, or confidence behaviour.
+- Preserve all config entries, options, entity unique IDs, stored tracks,
+  events, automations, and dashboards.
+- Add regression tests for MTG field mapping, optional provider data, immutable
+  provider snapshots, and clustering equivalence.
+
 ## 0.2.8
 
 - Add privacy-safe Home Assistant config-entry diagnostics without credentials,

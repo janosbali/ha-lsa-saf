@@ -20,6 +20,7 @@ from .fire_risk_coordinator import FireRiskCoordinator
 from .geocoding import PlaceNameResolver
 from .products.fire import ActiveFireClient
 from .products.fire_risk import FireRiskClient
+from .providers.mtg import MtgActiveFireProvider
 
 
 @dataclass
@@ -43,7 +44,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: LsaSafConfigEntry) -> bo
     if entry.options.get(CONF_RESOLVE_PLACE_NAMES, DEFAULT_RESOLVE_PLACE_NAMES):
         resolver = PlaceNameResolver(hass)
         await resolver.async_setup()
-    coordinator = LsaSafCoordinator(hass, entry, client, resolver)
+    coordinator = LsaSafCoordinator(
+        hass, entry, MtgActiveFireProvider(client), resolver
+    )
     await coordinator.async_config_entry_first_refresh()
     fire_risk_client = FireRiskClient(session)
     fire_risk_coordinator = FireRiskCoordinator(hass, entry, fire_risk_client)

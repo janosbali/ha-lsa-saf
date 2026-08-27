@@ -1,4 +1,4 @@
-"""Coordinator for the LSA SAF active-fire product."""
+"""Provider-neutral coordinator for active-fire detections."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -14,25 +14,12 @@ from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import LsaSafAuthError, LsaSafError
-from .products.fire import ActiveFireClient, FirePixel, haversine_km
+from .clustering import cluster_detections, haversine_km
 from .const import (
-    ATTR_ACQUIRED,
-    ATTR_CONFIDENCE,
-    ATTR_DISTANCE_KM,
-    ATTR_FRP_MW,
-    ATTR_LATITUDE,
-    ATTR_LONGITUDE,
-    ATTR_LOCATION_DESCRIPTION,
-    ATTR_NEAREST_SETTLEMENT,
     ATTR_NOTIFICATION_MESSAGE,
     ATTR_NOTIFICATION_TITLE,
-    ATTR_PLACE_ATTRIBUTION,
-    ATTR_PLACE_NAME,
-    ATTR_PEAK_FRP_MW,
-    ATTR_PIXEL_COUNT,
     ATTR_PRODUCT_TIME,
     ATTR_SOURCE_URL,
-    ATTR_TRACK_ID,
     BUS_EVENT_NEW_FIRE,
     CONF_DEDUP_HOURS,
     CONF_DEDUP_RADIUS_KM,
@@ -54,52 +41,11 @@ from .geocoding import (
     PlaceLookupError,
     PlaceNameResolver,
 )
+from .models import FireCluster, FireDetection
+from .providers.base import ActiveFireProvider
 
 _LOGGER = logging.getLogger(__name__)
 STORE_VERSION = 1
-
-
-@dataclass(slots=True)
-class FireCluster:
-    """A small group of adjacent fire pixels in one MTG product."""
-
-    latitude: float
-    longitude: float
-    distance_km: float
-    confidence: float
-    frp_mw: float
-    acquired: datetime
-    pixel_count: int
-    track_id: str | None = None
-    peak_frp_mw: float | None = None
-    place_name: str | None = None
-    nearest_settlement: str | None = None
-    location_description: str | None = None
-    place_attribution: str | None = None
-
-    def attrs(self) -> dict[str, Any]:
-        attrs = {
-            ATTR_LATITUDE: round(self.latitude, 6),
-            ATTR_LONGITUDE: round(self.longitude, 6),
-            ATTR_DISTANCE_KM: round(self.distance_km, 2),
-            ATTR_CONFIDENCE: round(self.confidence, 3),
-            ATTR_FRP_MW: round(self.frp_mw, 2),
-            ATTR_ACQUIRED: self.acquired.isoformat(),
-            ATTR_PIXEL_COUNT: self.pixel_count,
-        }
-        if self.track_id is not None:
-            attrs[ATTR_TRACK_ID] = self.track_id
-        if self.peak_frp_mw is not None:
-            attrs[ATTR_PEAK_FRP_MW] = round(self.peak_frp_mw, 2)
-        if self.place_name is not None:
-            attrs[ATTR_PLACE_NAME] = self.place_name
-        if self.nearest_settlement is not None:
-            attrs[ATTR_NEAREST_SETTLEMENT] = self.nearest_settlement
-        if self.location_description is not None:
-            attrs[ATTR_LOCATION_DESCRIPTION] = self.location_description
-        if self.place_attribution is not None:
-            attrs[ATTR_PLACE_ATTRIBUTION] = self.place_attribution
-        return attrs
 
 
 @dataclass(slots=True)
@@ -116,17 +62,17 @@ class CoordinatorData:
 
 
 class LsaSafCoordinator(DataUpdateCoordinator[CoordinatorData]):
-    """Fetch, filter, cluster, and deduplicate MTG fire detections."""
+    """Fetch, filter, cluster, and deduplicate active-fire detections."""
 
     def __init__(
         self,
         hass: HomeAssistant,
         entry: ConfigEntry,
-        client: ActiveFireClient,
+        provider: ActiveFireProvider,
         place_resolver: PlaceNameResolver | None = None,
     ) -> None:
         self.entry = entry
-        self.client = client
+        self.provider = provider
         self._store = Store(hass, STORE_VERSION, f"{DOMAIN}.{entry.entry_id}.tracks")
         self._tracks: list[dict[str, Any]] = []
         self._store_loaded = False
@@ -161,7 +107,7 @@ class LsaSafCoordinator(DataUpdateCoordinator[CoordinatorData]):
 
     async def _async_update_data(self) -> CoordinatorData:
         try:
-            product = await self.client.async_fetch_latest()
+            snapshot = await self.provider.async_fetch_latest()
         except LsaSafAuthError as err:
             raise ConfigEntryAuthFailed from err
         except LsaSafError as err:
@@ -175,15 +121,24 @@ class LsaSafCoordinator(DataUpdateCoordinator[CoordinatorData]):
         home_lat = float(self.hass.config.latitude)
         home_lon = float(self.hass.config.longitude)
 
-        filtered: list[tuple[FirePixel, float]] = []
-        for pixel in product.pixels:
-            if pixel.confidence < min_conf or pixel.frp_mw < min_frp:
+        filtered: list[tuple[FireDetection, float]] = []
+        for detection in snapshot.detections:
+            confidence = detection.confidence or 0.0
+            frp_mw = detection.frp_mw or 0.0
+            if confidence < min_conf or frp_mw < min_frp:
                 continue
-            distance = haversine_km(home_lat, home_lon, pixel.latitude, pixel.longitude)
+            distance = haversine_km(
+                home_lat, home_lon, detection.latitude, detection.longitude
+            )
             if distance <= radius_km:
-                filtered.append((pixel, distance))
+                filtered.append((detection, distance))
 
-        clusters = _cluster_pixels(filtered, home_lat, home_lon, max(0.5, dedup_radius * 0.66))
+        clusters = cluster_detections(
+            filtered,
+            home_lat,
+            home_lon,
+            max(0.5, dedup_radius * 0.66),
+        )
         now = datetime.now(UTC)
         cutoff = now - timedelta(hours=dedup_hours)
         self._tracks = [t for t in self._tracks if _parse_dt(t.get("last_seen")) >= cutoff]
@@ -223,8 +178,8 @@ class LsaSafCoordinator(DataUpdateCoordinator[CoordinatorData]):
                 if not first_snapshot:
                     await self._async_resolve_new_fire_place(matched, cluster)
                 attrs = cluster.attrs() | {
-                    ATTR_SOURCE_URL: product.url,
-                    ATTR_PRODUCT_TIME: product.product_time.isoformat(),
+                    ATTR_SOURCE_URL: snapshot.source_url,
+                    ATTR_PRODUCT_TIME: snapshot.product_timestamp.isoformat(),
                 }
                 if not first_snapshot:
                     title, message = _notification_text(
@@ -263,9 +218,9 @@ class LsaSafCoordinator(DataUpdateCoordinator[CoordinatorData]):
                 self._schedule_place_lookup(track)
 
         return CoordinatorData(
-            product_time=product.product_time,
-            source_url=product.url,
-            filename=product.filename,
+            product_time=snapshot.product_timestamp,
+            source_url=snapshot.source_url,
+            filename=snapshot.filename,
             active_clusters=clusters,
             tracked_fires=_tracked_fire_clusters(self._tracks, home_lat, home_lon),
             new_fires=new_fires,
@@ -420,46 +375,6 @@ def _tracked_fire_clusters(
 
 def _optional_text(value: Any) -> str | None:
     return value if isinstance(value, str) and value else None
-
-
-def _cluster_pixels(
-    pixels: list[tuple[FirePixel, float]], home_lat: float, home_lon: float, cluster_radius_km: float
-) -> list[FireCluster]:
-    """Greedily group adjacent fire pixels from the same product."""
-    groups: list[list[FirePixel]] = []
-    for pixel, _distance in sorted(pixels, key=lambda item: item[0].frp_mw, reverse=True):
-        target: list[FirePixel] | None = None
-        for group in groups:
-            ref = group[0]
-            if haversine_km(pixel.latitude, pixel.longitude, ref.latitude, ref.longitude) <= cluster_radius_km:
-                target = group
-                break
-        if target is None:
-            groups.append([pixel])
-        else:
-            target.append(pixel)
-
-    result: list[FireCluster] = []
-    for group in groups:
-        total_frp = sum(p.frp_mw for p in group)
-        if total_frp > 0:
-            lat = sum(p.latitude * p.frp_mw for p in group) / total_frp
-            lon = sum(p.longitude * p.frp_mw for p in group) / total_frp
-        else:
-            lat = sum(p.latitude for p in group) / len(group)
-            lon = sum(p.longitude for p in group) / len(group)
-        result.append(
-            FireCluster(
-                latitude=lat,
-                longitude=lon,
-                distance_km=haversine_km(home_lat, home_lon, lat, lon),
-                confidence=max(p.confidence for p in group),
-                frp_mw=total_frp,
-                acquired=max(p.acquired for p in group),
-                pixel_count=len(group),
-            )
-        )
-    return sorted(result, key=lambda c: c.distance_km)
 
 
 def _parse_dt(value: Any) -> datetime:
