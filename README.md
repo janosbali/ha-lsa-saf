@@ -48,6 +48,9 @@ It checks for the newest deterministic 10-minute product filename, parses the fi
   change over one hour, with the 3-hour change as a bounded attribute
 - `sensor.*_new_fire_incidents_in_the_last_24_hours` – new tracked incidents in
   the rolling 24-hour window
+- `sensor.*_active_fire_situation` – explainable integration-calculated summary
+  of current detected activity (`normal`, `elevated`, `high`, `critical`, or
+  `unknown`)
 - `event.*_new_active_fire` – Home Assistant Event entity for a newly deduplicated fire
 - `event.*_fire_incident_trend_change` – meaningful, cooldown-protected trend changes
 - `geo_location.*` – one live map marker per active fire cluster
@@ -146,6 +149,29 @@ this history; raw observation arrays are never exposed as entity attributes.
 products, while "new incidents" means newly created deduplicated incident IDs.
 FRP change is the difference between the first and last total clustered FRP in
 the selected window and remains unavailable until at least two samples exist.
+
+### Active Fire Situation
+
+Active Fire Situation is deliberately separate from the FRMv3 **Fire Risk**
+forecast. Fire Risk describes environmental conditions that favour fire;
+Active Fire Situation summarizes current satellite-detected activity. It is an
+integration-calculated situation indicator, not an official emergency or
+fire-danger classification.
+
+The score is deterministic and uses only bounded inputs:
+
+- nearest detection: 5/4/3/2/1 points within 10/25/50/100/250 km;
+- active incidents: 1 point for at least 2, 2 points for at least 5;
+- highest current FRP: 1 point from 30 MW, 2 points from 100 MW;
+- detected activity approaching Home: 2 points;
+- increasing FRP and increasing detection activity: 1 point each.
+
+With fresh provider data, no current detections is `normal`. Any current
+detection is at least `elevated`; `high` requires a detection within 100 km and
+at least 5 points, while `critical` requires a detection within 25 km and at
+least 7 points. If the provider is delayed/unavailable or the product is older
+than 60 minutes, the state is `unknown` rather than a potentially misleading
+`normal`.
 
 ### Data freshness and provider health
 
@@ -303,6 +329,7 @@ custom_components/lsa_saf/
 ├── api.py                 # shared Data Service authentication/client base
 ├── models.py              # provider-neutral detections and clusters
 ├── clustering.py          # common distance and spatial clustering
+├── situation.py           # explainable current Active Fire Situation scoring
 ├── config_flow.py
 ├── const.py
 ├── coordinator.py         # common active-fire processing pipeline
@@ -328,11 +355,11 @@ The domain is intentionally the generic `lsa_saf`, not `lsa_saf_mtg_fire`, so fu
 
 ## Roadmap
 
-### v0.4
+### Next
 
-- aggregate Active Fire Situation indicator based on the stable incident and
-  trend layers
 - prepare a separate GOES technical spike without adding production dependencies
+- stabilize the planned LSA SAF Land Surface Temperature product as an
+  independent module
 
 ### Multi-source detection and incident verification
 

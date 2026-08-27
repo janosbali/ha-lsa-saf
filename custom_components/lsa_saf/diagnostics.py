@@ -93,6 +93,16 @@ async def async_get_config_entry_diagnostics(
                 if active_data and getattr(active_data, "activity", None)
                 else None
             ),
+            "situation": (
+                {
+                    "level": active_data.situation.level.value,
+                    "score": active_data.situation.score,
+                    "reasons": list(active_data.situation.reasons),
+                    "active_incidents": active_data.situation.active_incidents,
+                }
+                if active_data and getattr(active_data, "situation", None)
+                else None
+            ),
         },
         "fire_risk": {
             "last_update_success": risk.last_update_success,

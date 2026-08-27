@@ -55,6 +55,7 @@ from .providers.base import (
     ProviderNoDataError,
     ProviderUnavailableError,
 )
+from .situation import SituationAssessment, assess_situation
 from .tracking import update_incidents
 
 _LOGGER = logging.getLogger(__name__)
@@ -74,6 +75,7 @@ class CoordinatorData:
     trend_events: list[dict[str, Any]]
     raw_pixels_in_radius: int
     activity: ActivitySummary
+    situation: SituationAssessment
 
 
 class LsaSafCoordinator(DataUpdateCoordinator[CoordinatorData]):
@@ -232,6 +234,12 @@ class LsaSafCoordinator(DataUpdateCoordinator[CoordinatorData]):
         activity = summarize_activity(
             self._activity_history, now=snapshot.product_timestamp
         )
+        situation = assess_situation(
+            clusters,
+            provider_status=snapshot.status,
+            product_time=snapshot.product_timestamp,
+            now=snapshot.received_timestamp,
+        )
         changed = True
 
         if changed and self._store_loaded:
@@ -251,6 +259,7 @@ class LsaSafCoordinator(DataUpdateCoordinator[CoordinatorData]):
             trend_events=trend_events,
             raw_pixels_in_radius=len(filtered),
             activity=activity,
+            situation=situation,
         )
 
     def _set_provider_failure_status(self, status: ProviderStatus) -> None:

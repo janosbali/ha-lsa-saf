@@ -125,6 +125,16 @@
       },
       "new_incidents_24h": {
         "name": "New fire incidents in the last 24 hours"
+      },
+      "active_fire_situation": {
+        "name": "Active Fire Situation",
+        "state": {
+          "normal": "Normal",
+          "elevated": "Elevated",
+          "high": "High",
+          "critical": "Critical",
+          "unknown": "Unknown"
+        }
       }
     },
     "event": {

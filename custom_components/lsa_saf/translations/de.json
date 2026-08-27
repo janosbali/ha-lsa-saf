@@ -59,6 +59,7 @@
       "recent_detections": {"name": "Branderkennungen in der letzten Stunde"},
       "fire_activity_frp_change": {"name": "FRP-Änderung der Brandaktivität in einer Stunde"},
       "new_incidents_24h": {"name": "Neue Brandereignisse in den letzten 24 Stunden"}
+      ,"active_fire_situation": {"name": "Aktive Brandsituation", "state": {"normal": "Normal", "elevated": "Erhöht", "high": "Hoch", "critical": "Kritisch", "unknown": "Unbekannt"}}
     },
     "event": {"new_fire": {"name": "Neues aktives Feuer"}, "fire_risk_increase": {"name": "Anstieg der Waldbrandgefahr"}, "fire_trend": {"name": "Trendänderung eines Brandereignisses"}},
     "select": {"fire_risk_day": {"name": "Tag der Waldbrandgefahrenvorhersage", "state": {"today": "Heute", "tomorrow": "Morgen", "in_2_days": "In 2 Tagen", "in_3_days": "In 3 Tagen", "in_4_days": "In 4 Tagen", "in_5_days": "In 5 Tagen", "in_6_days": "In 6 Tagen", "in_7_days": "In 7 Tagen", "in_8_days": "In 8 Tagen", "in_9_days": "In 9 Tagen"}}},

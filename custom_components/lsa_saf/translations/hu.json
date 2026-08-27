@@ -125,6 +125,16 @@
       },
       "new_incidents_24h": {
         "name": "Új tűzesetek az elmúlt 24 órában"
+      },
+      "active_fire_situation": {
+        "name": "Aktív tűzhelyzet",
+        "state": {
+          "normal": "Normál",
+          "elevated": "Emelkedett",
+          "high": "Magas",
+          "critical": "Kritikus",
+          "unknown": "Ismeretlen"
+        }
       }
     },
     "event": {

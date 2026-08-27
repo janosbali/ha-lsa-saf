@@ -32,7 +32,9 @@ from custom_components.lsa_saf.models import (
     DistanceTrend,
     FireLifecycle,
     MetricTrend,
+    ProviderStatus,
 )
+from custom_components.lsa_saf.situation import assess_situation
 from custom_components.lsa_saf.geo_location import (
     LsaSafFireLocation,
     _async_remove_expired_entity,
@@ -78,6 +80,12 @@ def _entity(cluster: FireCluster) -> LsaSafFireLocation:
             trend_events=[],
             raw_pixels_in_radius=2,
             activity=ActivitySummary(),
+            situation=assess_situation(
+                [cluster],
+                provider_status=ProviderStatus.AVAILABLE,
+                product_time=datetime(2026, 8, 25, 20, 30, tzinfo=UTC),
+                now=datetime(2026, 8, 25, 20, 30, tzinfo=UTC),
+            ),
         )
     )
     return entity

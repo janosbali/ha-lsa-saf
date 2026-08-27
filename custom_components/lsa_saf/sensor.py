@@ -29,6 +29,7 @@ async def async_setup_entry(
             RecentDetectionsSensor(entry),
             FireActivityFrpChangeSensor(entry),
             NewIncidents24hSensor(entry),
+            ActiveFireSituationSensor(entry),
             FireRiskTodaySensor(entry),
             FireRiskAreaMaximumSensor(entry),
             FireRiskUpdateSensor(entry),
@@ -252,6 +253,47 @@ class NewIncidents24hSensor(LsaSafEntity, SensorEntity):
     def native_value(self) -> int:
         data = self.coordinator.data
         return data.activity.new_incidents_24h if data else 0
+
+
+class ActiveFireSituationSensor(LsaSafEntity, SensorEntity):
+    """Explainable integration-calculated current active-fire situation."""
+
+    _attr_translation_key = "active_fire_situation"
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = ["normal", "elevated", "high", "critical", "unknown"]
+    _attr_icon = "mdi:fire-circle"
+
+    def __init__(self, entry: LsaSafConfigEntry) -> None:
+        super().__init__(entry)
+        self._attr_unique_id = f"{entry.entry_id}_active_fire_situation"
+
+    @property
+    def native_value(self) -> str:
+        data = self.coordinator.data
+        return data.situation.level.value if data else "unknown"
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        data = self.coordinator.data
+        if data is None:
+            return {"score": 0, "reasons": ["data_not_loaded"]}
+        situation = data.situation
+        return {
+            "score": situation.score,
+            "reasons": list(situation.reasons),
+            "active_incidents": situation.active_incidents,
+            "nearest_distance_km": situation.nearest_distance_km,
+            "highest_frp_mw": situation.highest_frp_mw,
+            "approaching_incidents": situation.approaching_incidents,
+            "increasing_intensity_incidents": (
+                situation.increasing_intensity_incidents
+            ),
+            "increasing_activity_incidents": (
+                situation.increasing_activity_incidents
+            ),
+            "assessed_at": situation.assessed_at.isoformat(),
+            "classification": "integration_calculated_situation_indicator",
+        }
 
 
 class FireRiskTodaySensor(LsaSafFireRiskEntity, SensorEntity):

@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.7.0
+
+- Add an explainable, provider-neutral Active Fire Situation sensor with
+  `normal`, `elevated`, `high`, `critical`, and `unknown` states.
+- Keep Active Fire Situation separate from the environmental FRMv3 Fire Risk
+  forecast; it evaluates only current detected fire activity.
+- Score bounded signals from nearest distance, active incident count, observed
+  FRP, approaching activity, increasing FRP, and increasing detection activity.
+- Require a detection within 100 km for `high` and within 25 km plus multiple
+  corroborating signals for `critical`.
+- Return `unknown`, never `normal`, when satellite data is unavailable,
+  delayed, or older than 60 minutes.
+- Expose a compact reason list and contributing counts without publishing raw
+  incident histories or presenting the result as an official emergency level.
+- Add localized state names in all six supported languages and privacy-safe
+  diagnostic output.
+- Add tests for normal, elevated, high, critical, stale-data, and outage cases.
+
 ## 0.6.0
 
 - Add a bounded 24-hour provider-neutral activity history that never appears as

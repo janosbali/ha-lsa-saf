@@ -59,6 +59,7 @@
       "recent_detections": {"name": "Détections d’incendie au cours de la dernière heure"},
       "fire_activity_frp_change": {"name": "Variation de la FRP de l’activité incendie sur une heure"},
       "new_incidents_24h": {"name": "Nouveaux incendies au cours des dernières 24 heures"}
+      ,"active_fire_situation": {"name": "Situation des incendies actifs", "state": {"normal": "Normale", "elevated": "Élevée", "high": "Haute", "critical": "Critique", "unknown": "Inconnue"}}
     },
     "event": {"new_fire": {"name": "Nouveau feu actif"}, "fire_risk_increase": {"name": "Augmentation du risque d’incendie"}, "fire_trend": {"name": "Changement de tendance d’un incendie"}},
     "select": {"fire_risk_day": {"name": "Jour de prévision du risque d’incendie", "state": {"today": "Aujourd’hui", "tomorrow": "Demain", "in_2_days": "Dans 2 jours", "in_3_days": "Dans 3 jours", "in_4_days": "Dans 4 jours", "in_5_days": "Dans 5 jours", "in_6_days": "Dans 6 jours", "in_7_days": "Dans 7 jours", "in_8_days": "Dans 8 jours", "in_9_days": "Dans 9 jours"}}},
