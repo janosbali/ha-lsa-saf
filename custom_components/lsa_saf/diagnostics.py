@@ -60,6 +60,25 @@ async def async_get_config_entry_diagnostics(
                 if active_data
                 else None
             ),
+            "incident_trend_counts": (
+                {
+                    metric: {
+                        state: sum(
+                            getattr(cluster, metric, None) is not None
+                            and getattr(cluster, metric).value == state
+                            for cluster in active_data.tracked_fires
+                        )
+                        for state in (
+                            ("approaching", "stable", "receding", "unknown")
+                            if metric == "distance_trend"
+                            else ("increasing", "stable", "decreasing", "unknown")
+                        )
+                    }
+                    for metric in ("frp_trend", "activity_trend", "distance_trend")
+                }
+                if active_data
+                else None
+            ),
             "raw_pixels_in_radius": (
                 active_data.raw_pixels_in_radius if active_data else None
             ),

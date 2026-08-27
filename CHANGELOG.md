@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.5.0
+
+- Add a provider-neutral trend engine for incident FRP, detection/pixel
+  activity, and distance from Home.
+- Classify FRP and activity as increasing, stable, decreasing, or unknown, and
+  distance as approaching, stable, receding, or unknown.
+- Use linear regression across a 90-minute observation window instead of
+  comparing only two consecutive satellite products.
+- Require at least three samples spanning 20 minutes before reporting a trend.
+- Apply absolute and relative noise tolerances plus half-threshold hysteresis
+  to prevent rapid trend-state oscillation.
+- Keep at most 37 compact samples per incident and expose only bounded trend
+  summaries as Home Assistant attributes.
+- Migrate existing v0.4 incident records automatically; their trends remain
+  unknown until enough new observations arrive.
+- Add regression tests for rising, falling, stable, insufficient-data,
+  hysteresis, duplicate-product, and bounded-history behaviour.
+
 ## 0.4.0
 
 - Replace the coordinator's inline same-fire deduplication with a separately

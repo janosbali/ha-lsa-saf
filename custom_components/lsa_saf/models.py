@@ -8,11 +8,14 @@ from typing import Any
 
 from .const import (
     ATTR_ACQUIRED,
+    ATTR_ACTIVITY_TREND,
     ATTR_CONFIDENCE,
     ATTR_DISTANCE_KM,
+    ATTR_DISTANCE_TREND,
     ATTR_DURATION_MINUTES,
     ATTR_FIRST_SEEN,
     ATTR_FRP_MW,
+    ATTR_FRP_TREND,
     ATTR_LATITUDE,
     ATTR_LOCATION_DESCRIPTION,
     ATTR_LONGITUDE,
@@ -30,6 +33,8 @@ from .const import (
     ATTR_PLACE_ATTRIBUTION,
     ATTR_PLACE_NAME,
     ATTR_TRACK_ID,
+    ATTR_TREND_SAMPLES,
+    ATTR_TREND_WINDOW_MINUTES,
 )
 
 
@@ -51,6 +56,24 @@ class FireLifecycle(StrEnum):
     CONTINUING = "continuing"
     INACTIVE = "inactive"
     ENDED = "ended"
+
+
+class MetricTrend(StrEnum):
+    """Trend direction for FRP and detection activity."""
+
+    INCREASING = "increasing"
+    STABLE = "stable"
+    DECREASING = "decreasing"
+    UNKNOWN = "unknown"
+
+
+class DistanceTrend(StrEnum):
+    """Trend of detected activity relative to Home."""
+
+    APPROACHING = "approaching"
+    STABLE = "stable"
+    RECEDING = "receding"
+    UNKNOWN = "unknown"
 
 
 @dataclass(frozen=True, slots=True)
@@ -115,6 +138,11 @@ class FireCluster:
     maximum_pixel_count: int | None = None
     detections_total: int | None = None
     maximum_confidence: float | None = None
+    frp_trend: MetricTrend | None = None
+    activity_trend: MetricTrend | None = None
+    distance_trend: DistanceTrend | None = None
+    trend_samples: int | None = None
+    trend_window_minutes: float | None = None
 
     def attrs(self) -> dict[str, Any]:
         """Return bounded Home Assistant state attributes."""
@@ -160,4 +188,14 @@ class FireCluster:
             attrs[ATTR_DETECTIONS_TOTAL] = self.detections_total
         if self.maximum_confidence is not None:
             attrs[ATTR_MAXIMUM_CONFIDENCE] = round(self.maximum_confidence, 3)
+        if self.frp_trend is not None:
+            attrs[ATTR_FRP_TREND] = self.frp_trend.value
+        if self.activity_trend is not None:
+            attrs[ATTR_ACTIVITY_TREND] = self.activity_trend.value
+        if self.distance_trend is not None:
+            attrs[ATTR_DISTANCE_TREND] = self.distance_trend.value
+        if self.trend_samples is not None:
+            attrs[ATTR_TREND_SAMPLES] = self.trend_samples
+        if self.trend_window_minutes is not None:
+            attrs[ATTR_TREND_WINDOW_MINUTES] = round(self.trend_window_minutes, 1)
         return attrs

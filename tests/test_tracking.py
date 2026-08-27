@@ -39,6 +39,8 @@ def test_new_incident_has_stable_id_and_initial_aggregates() -> None:
     assert incident["maximum_frp_mw"] == 10.0
     assert incident["maximum_pixel_count"] == 2
     assert incident["detections_total"] == 2
+    assert incident["frp_trend"] == "unknown"
+    assert incident["trend_sample_count"] == 1
 
 
 def test_continuing_incident_updates_current_and_maximum_values() -> None:

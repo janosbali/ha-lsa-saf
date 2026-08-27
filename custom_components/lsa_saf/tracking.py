@@ -7,7 +7,13 @@ import hashlib
 from typing import Any
 
 from .clustering import haversine_km
-from .models import FireCluster, FireLifecycle
+from .models import (
+    DistanceTrend,
+    FireCluster,
+    FireLifecycle,
+    MetricTrend,
+)
+from .trends import add_observation_and_update_trends, ensure_trend_state
 
 
 @dataclass(slots=True)
@@ -76,6 +82,11 @@ def apply_incident_metadata(cluster: FireCluster, incident: dict[str, Any]) -> N
     cluster.maximum_pixel_count = int(incident["maximum_pixel_count"])
     cluster.detections_total = int(incident["detections_total"])
     cluster.maximum_confidence = float(incident["maximum_confidence"])
+    cluster.frp_trend = MetricTrend(str(incident["frp_trend"]))
+    cluster.activity_trend = MetricTrend(str(incident["activity_trend"]))
+    cluster.distance_trend = DistanceTrend(str(incident["distance_trend"]))
+    cluster.trend_samples = int(incident["trend_sample_count"])
+    cluster.trend_window_minutes = float(incident["trend_window_minutes"])
 
 
 def _nearest_match(
@@ -106,10 +117,11 @@ def _new_incident(cluster: FireCluster) -> dict[str, Any]:
         f"{cluster.latitude:.4f}:{cluster.longitude:.4f}:{cluster.acquired.isoformat()}".encode(),
         digest_size=6,
     ).hexdigest()
-    return {
+    incident = {
         "track_id": incident_id,
         "latitude": cluster.latitude,
         "longitude": cluster.longitude,
+        "distance_km": cluster.distance_km,
         "first_seen": cluster.acquired.isoformat(),
         "last_seen": cluster.acquired.isoformat(),
         "lifecycle": FireLifecycle.NEW.value,
@@ -123,6 +135,8 @@ def _new_incident(cluster: FireCluster) -> dict[str, Any]:
         "detections_total": cluster.pixel_count,
         "minimum_distance_km": cluster.distance_km,
     }
+    add_observation_and_update_trends(incident, cluster)
+    return incident
 
 
 def _update_incident(incident: dict[str, Any], cluster: FireCluster) -> None:
@@ -132,6 +146,7 @@ def _update_incident(incident: dict[str, Any], cluster: FireCluster) -> None:
         {
             "latitude": cluster.latitude,
             "longitude": cluster.longitude,
+            "distance_km": cluster.distance_km,
             "last_seen": max(previous_last_seen, cluster.acquired).isoformat(),
             "lifecycle": FireLifecycle.CONTINUING.value,
             "frp_mw": cluster.frp_mw,
@@ -159,16 +174,20 @@ def _update_incident(incident: dict[str, Any], cluster: FireCluster) -> None:
         incident["detections_total"] = (
             int(incident["detections_total"]) + cluster.pixel_count
         )
+        add_observation_and_update_trends(incident, cluster)
 
 
 def _migrate_incident(incident: dict[str, Any]) -> None:
     """Populate lifecycle fields for legacy v1 track records."""
     incident.setdefault("lifecycle", FireLifecycle.CONTINUING.value)
-    incident.setdefault("maximum_frp_mw", incident.get("peak_frp_mw", incident.get("frp_mw", 0)))
+    incident.setdefault(
+        "maximum_frp_mw", incident.get("peak_frp_mw", incident.get("frp_mw", 0))
+    )
     incident.setdefault("peak_frp_mw", incident["maximum_frp_mw"])
     incident.setdefault("maximum_confidence", incident.get("confidence", 0))
     incident.setdefault("maximum_pixel_count", incident.get("pixel_count", 0))
     incident.setdefault("detections_total", incident.get("pixel_count", 0))
+    ensure_trend_state(incident)
 
 
 def _parse_dt(value: Any) -> datetime:

@@ -39,7 +39,14 @@ from .geocoding import (
     PlaceLookupError,
     PlaceNameResolver,
 )
-from .models import FireCluster, FireDetection, FireLifecycle, ProviderStatus
+from .models import (
+    DistanceTrend,
+    FireCluster,
+    FireDetection,
+    FireLifecycle,
+    MetricTrend,
+    ProviderStatus,
+)
 from .providers.base import (
     ActiveFireProvider,
     ProviderAuthenticationError,
@@ -358,6 +365,15 @@ def _tracked_fire_clusters(
             maximum_pixel_count = int(track.get("maximum_pixel_count", pixel_count))
             detections_total = int(track.get("detections_total", pixel_count))
             maximum_confidence = float(track.get("maximum_confidence", confidence))
+            frp_trend = MetricTrend(str(track.get("frp_trend", "unknown")))
+            activity_trend = MetricTrend(
+                str(track.get("activity_trend", "unknown"))
+            )
+            distance_trend = DistanceTrend(
+                str(track.get("distance_trend", "unknown"))
+            )
+            trend_samples = int(track.get("trend_sample_count", 0))
+            trend_window_minutes = float(track.get("trend_window_minutes", 0))
         except (KeyError, TypeError, ValueError):
             # Tracks written before v0.1.5 do not contain enough map metadata.
             continue
@@ -384,6 +400,11 @@ def _tracked_fire_clusters(
                 maximum_pixel_count=maximum_pixel_count,
                 detections_total=detections_total,
                 maximum_confidence=maximum_confidence,
+                frp_trend=frp_trend,
+                activity_trend=activity_trend,
+                distance_trend=distance_trend,
+                trend_samples=trend_samples,
+                trend_window_minutes=trend_window_minutes,
             )
         )
     return sorted(result, key=lambda cluster: cluster.distance_km)

@@ -6,9 +6,12 @@ from types import SimpleNamespace
 from unittest.mock import Mock
 
 from custom_components.lsa_saf.const import (
+    ATTR_ACTIVITY_TREND,
+    ATTR_DISTANCE_TREND,
     ATTR_LATITUDE,
     ATTR_DETECTIONS_TOTAL,
     ATTR_DURATION_MINUTES,
+    ATTR_FRP_TREND,
     ATTR_LIFECYCLE,
     ATTR_LOCATION_DESCRIPTION,
     ATTR_LONGITUDE,
@@ -24,7 +27,11 @@ from custom_components.lsa_saf.coordinator import (
     FireCluster,
     _tracked_fire_clusters,
 )
-from custom_components.lsa_saf.models import FireLifecycle
+from custom_components.lsa_saf.models import (
+    DistanceTrend,
+    FireLifecycle,
+    MetricTrend,
+)
 from custom_components.lsa_saf.geo_location import (
     LsaSafFireLocation,
     _async_remove_expired_entity,
@@ -46,6 +53,11 @@ def _cluster(**changes) -> FireCluster:
         "first_seen": datetime(2026, 8, 25, 20, 0, tzinfo=UTC),
         "last_seen": datetime(2026, 8, 25, 20, 20, tzinfo=UTC),
         "detections_total": 5,
+        "frp_trend": MetricTrend.INCREASING,
+        "activity_trend": MetricTrend.STABLE,
+        "distance_trend": DistanceTrend.APPROACHING,
+        "trend_samples": 4,
+        "trend_window_minutes": 30,
     }
     values.update(changes)
     return FireCluster(**values)
@@ -76,6 +88,9 @@ def test_cluster_attributes_include_tracking_metadata() -> None:
     assert attrs[ATTR_LIFECYCLE] == "continuing"
     assert attrs[ATTR_DURATION_MINUTES] == 20.0
     assert attrs[ATTR_DETECTIONS_TOTAL] == 5
+    assert attrs[ATTR_FRP_TREND] == "increasing"
+    assert attrs[ATTR_ACTIVITY_TREND] == "stable"
+    assert attrs[ATTR_DISTANCE_TREND] == "approaching"
 
 
 def test_map_entity_exposes_location_distance_and_details() -> None:
