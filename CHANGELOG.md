@@ -8,6 +8,9 @@
   Assistant and performs no runtime network requests.
 - Preserve FIRMS categorical confidence values without presenting them as
   fabricated numeric probabilities.
+- Add a deterministic multi-provider correlation engine with independent
+  distance and observation-time gates. It retains every source observation and
+  exposes why a detection is or is not corroborated.
 
 ## 0.8.0
 

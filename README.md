@@ -388,6 +388,8 @@ The domain is intentionally the generic `lsa_saf`, not `lsa_saf_mtg_fire`, so fu
   Area API client/parser and provider-neutral NOAA-20/NOAA-21 VIIRS adapter;
   configuration, scheduling, and correlation remain intentionally disabled
 - correlate nearby LSA SAF and FIRMS detections by location and acquisition time
+- correlation engine implemented with bounded distance/time gates and retained
+  per-source observations; runtime scheduling and UI exposure remain disabled
 - expose a provider-neutral confirmation level instead of treating either
   satellite source as authoritative on its own
 - distinguish detections seen by multiple satellites from single-source,
