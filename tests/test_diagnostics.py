@@ -6,7 +6,11 @@ from types import SimpleNamespace
 
 import pytest
 
-from custom_components.lsa_saf.const import CONF_PASSWORD, CONF_USERNAME
+from custom_components.lsa_saf.const import (
+    CONF_FIRMS_MAP_KEY,
+    CONF_PASSWORD,
+    CONF_USERNAME,
+)
 from custom_components.lsa_saf.diagnostics import async_get_config_entry_diagnostics
 from custom_components.lsa_saf.models import ProviderStatus
 from custom_components.lsa_saf.products.fire_risk import FireRiskDay, FireRiskForecast
@@ -17,6 +21,7 @@ async def test_diagnostics_are_bounded_and_redacted(hass) -> None:
     """Diagnostics expose health/counts but no secrets or precise locations."""
     account_value = "test-account"
     credential_value = "-".join(("test", "credential"))
+    firms_key_value = "F" * 32
     product_time = datetime(2026, 8, 27, 16, 20, tzinfo=UTC)
     generated_at = datetime(2026, 8, 27, 16, 21, tzinfo=UTC)
     active_data = SimpleNamespace(
@@ -37,7 +42,11 @@ async def test_diagnostics_are_bounded_and_redacted(hass) -> None:
         radius_km=100,
     )
     entry = SimpleNamespace(
-        data={CONF_USERNAME: account_value, CONF_PASSWORD: credential_value},
+        data={
+            CONF_USERNAME: account_value,
+            CONF_PASSWORD: credential_value,
+            CONF_FIRMS_MAP_KEY: firms_key_value,
+        },
         options={"radius_km": 25.0},
         runtime_data=SimpleNamespace(
             coordinator=SimpleNamespace(
@@ -72,6 +81,7 @@ async def test_diagnostics_are_bounded_and_redacted(hass) -> None:
     assert result["fire_risk"]["area_risk"] == "very_high"
     assert account_value not in serialized
     assert credential_value not in serialized
+    assert firms_key_value not in serialized
     assert "46.123456" not in serialized
     assert "18.654321" not in serialized
     assert "example.invalid" not in serialized

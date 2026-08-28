@@ -50,7 +50,9 @@
           "dedup_radius_km": "Azonos tűz illesztési sugara",
           "dedup_hours": "Azonos tűz megjegyzési ideje",
           "resolve_place_names": "Közeli helynevek megjelenítése a térképen",
-          "enable_land_surface_temperature": "Felszínhőmérséklet engedélyezése"
+          "enable_land_surface_temperature": "Felszínhőmérséklet engedélyezése",
+          "enable_firms": "NASA FIRMS megerősítés engedélyezése",
+          "firms_map_key": "NASA FIRMS MAP_KEY"
         },
         "data_description": {
           "radius_km": "Csak a Home Assistant Otthon helyétől ezen a távolságon belüli MTG tűzészlelések számítanak.",
@@ -61,9 +63,16 @@
           "dedup_radius_km": "A közelmúltban látott tűzhöz közeli észlelés ugyanannak a tűznek számít, így nem keletkezik új esemény.",
           "dedup_hours": "Ennyi ideig nyomja el az azonos helyen jelentkező ismételt új-tűz eseményt.",
           "resolve_place_names": "A legközelebbi települést helyben keresi meg a csomagolt GeoNames cities500 adatbázisból. Koordinátát nem küld külső szolgáltatásnak.",
-          "enable_land_surface_temperature": "Opcionális és alapból kikapcsolt. Bekapcsolva a Home Assistant körülbelül 15 percenként elküldi az Otthon szélességi és hosszúsági koordinátáját az LSA SAF hivatalos adaguc.lsasvcs.ipma.pt WMS-szolgáltatásának a legfrissebb műholdas felszínhőmérséklet lekéréséhez."
+          "enable_land_surface_temperature": "Opcionális és alapból kikapcsolt. Bekapcsolva a Home Assistant körülbelül 15 percenként elküldi az Otthon szélességi és hosszúsági koordinátáját az LSA SAF hivatalos adaguc.lsasvcs.ipma.pt WMS-szolgáltatásának a legfrissebb műholdas felszínhőmérséklet lekéréséhez.",
+          "enable_firms": "Opcionális és alapból kikapcsolt. Bekapcsolva a Home Assistant az Otthon körüli kis határolóterületet elküldi a NASA hivatalos FIRMS API-jának, hogy független VIIRS-észleléseket keressen. Saját ingyenes MAP_KEY szükséges.",
+          "firms_map_key": "Titkos adatként kerül a Home Assistant konfigurációs bejegyzésébe, és a diagnosztikából ki van takarva. Hagyd üresen a már mentett kulcs megtartásához."
         }
       }
+    },
+    "error": {
+      "firms_key_required": "A megerősítés engedélyezése előtt add meg a NASA FIRMS MAP_KEY értékét",
+      "invalid_firms_key": "A NASA FIRMS elutasította a MAP_KEY értékét",
+      "firms_cannot_connect": "A NASA FIRMS MAP_KEY ellenőrzése nem sikerült"
     }
   },
   "entity": {

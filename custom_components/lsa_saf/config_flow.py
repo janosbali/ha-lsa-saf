@@ -8,13 +8,22 @@ from homeassistant import config_entries
 from homeassistant.config_entries import ConfigFlowResult, OptionsFlowWithReload
 from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.selector import NumberSelector, NumberSelectorConfig, NumberSelectorMode
+from homeassistant.helpers.selector import (
+    NumberSelector,
+    NumberSelectorConfig,
+    NumberSelectorMode,
+    TextSelector,
+    TextSelectorConfig,
+    TextSelectorType,
+)
 
 from .api import LsaSafAuthError, LsaSafError
 from .const import (
     CONF_DEDUP_HOURS,
     CONF_DEDUP_RADIUS_KM,
+    CONF_ENABLE_FIRMS,
     CONF_ENABLE_LAND_SURFACE_TEMPERATURE,
+    CONF_FIRMS_MAP_KEY,
     CONF_FIRE_RISK_RADIUS_KM,
     CONF_MIN_CONFIDENCE,
     CONF_MIN_FRP_MW,
@@ -25,6 +34,7 @@ from .const import (
     CONF_USERNAME,
     DEFAULT_DEDUP_HOURS,
     DEFAULT_DEDUP_RADIUS_KM,
+    DEFAULT_ENABLE_FIRMS,
     DEFAULT_ENABLE_LAND_SURFACE_TEMPERATURE,
     DEFAULT_FIRE_RISK_RADIUS_KM,
     DEFAULT_MIN_CONFIDENCE,
@@ -37,6 +47,9 @@ from .const import (
     MIN_RADIUS_KM,
 )
 from .products.fire import ActiveFireClient
+from .products.firms import FirmsAuthenticationError, FirmsClient, FirmsError
+
+FIRMS_VALIDATION_SOURCE = "VIIRS_NOAA20_NRT"
 
 
 class LsaSafConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -148,10 +161,57 @@ class LsaSafOptionsFlow(OptionsFlowWithReload):
     """Handle LSA SAF integration options."""
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        errors: dict[str, str] = {}
         if user_input is not None:
-            return self.async_create_entry(data=user_input)
+            options = dict(user_input)
+            submitted_key = str(options.pop(CONF_FIRMS_MAP_KEY, "")).strip()
+            if options.get(CONF_ENABLE_FIRMS, DEFAULT_ENABLE_FIRMS):
+                map_key = submitted_key or str(
+                    self.config_entry.data.get(CONF_FIRMS_MAP_KEY, "")
+                )
+                if not map_key:
+                    errors[CONF_FIRMS_MAP_KEY] = "firms_key_required"
+                else:
+                    west, south, east, north = _firms_validation_bounds(
+                        float(self.hass.config.latitude),
+                        float(self.hass.config.longitude),
+                    )
+                    try:
+                        await FirmsClient(
+                            async_get_clientsession(self.hass), map_key
+                        ).async_area(
+                            source=FIRMS_VALIDATION_SOURCE,
+                            west=west,
+                            south=south,
+                            east=east,
+                            north=north,
+                        )
+                    except FirmsAuthenticationError:
+                        errors[CONF_FIRMS_MAP_KEY] = "invalid_firms_key"
+                    except FirmsError:
+                        errors["base"] = "firms_cannot_connect"
+                    except Exception:  # noqa: BLE001
+                        errors["base"] = "firms_cannot_connect"
+                    else:
+                        if submitted_key:
+                            self.hass.config_entries.async_update_entry(
+                                self.config_entry,
+                                data={
+                                    **self.config_entry.data,
+                                    CONF_FIRMS_MAP_KEY: submitted_key,
+                                },
+                            )
+                        return self.async_create_entry(data=options)
+            else:
+                return self.async_create_entry(data=options)
 
         current = _default_options() | dict(self.config_entry.options)
+        if user_input is not None:
+            current |= {
+                key: value
+                for key, value in user_input.items()
+                if key != CONF_FIRMS_MAP_KEY
+            }
         schema = vol.Schema(
             {
                 vol.Required(CONF_RADIUS_KM): NumberSelector(
@@ -177,11 +237,16 @@ class LsaSafOptionsFlow(OptionsFlowWithReload):
                 ),
                 vol.Required(CONF_RESOLVE_PLACE_NAMES): bool,
                 vol.Required(CONF_ENABLE_LAND_SURFACE_TEMPERATURE): bool,
+                vol.Required(CONF_ENABLE_FIRMS): bool,
+                vol.Optional(CONF_FIRMS_MAP_KEY): TextSelector(
+                    TextSelectorConfig(type=TextSelectorType.PASSWORD)
+                ),
             }
         )
         return self.async_show_form(
             step_id="init",
             data_schema=self.add_suggested_values_to_schema(schema, current),
+            errors=errors,
         )
 
 
@@ -198,4 +263,17 @@ def _default_options() -> dict[str, Any]:
         CONF_ENABLE_LAND_SURFACE_TEMPERATURE: (
             DEFAULT_ENABLE_LAND_SURFACE_TEMPERATURE
         ),
+        CONF_ENABLE_FIRMS: DEFAULT_ENABLE_FIRMS,
     }
+
+
+def _firms_validation_bounds(
+    latitude: float, longitude: float
+) -> tuple[float, float, float, float]:
+    """Build a tiny non-wrapping box for MAP_KEY validation."""
+    delta = 0.01
+    south = max(-90.0, latitude - delta)
+    north = min(90.0, latitude + delta)
+    west = max(-180.0, longitude - delta)
+    east = min(180.0, longitude + delta)
+    return west, south, east, north

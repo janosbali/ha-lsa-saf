@@ -11,6 +11,10 @@
 - Add a deterministic multi-provider correlation engine with independent
   distance and observation-time gates. It retains every source observation and
   exposes why a detection is or is not corroborated.
+- Add a default-off NASA FIRMS option with a masked personal MAP_KEY field,
+  save-time validation against a tiny one-day area request, explicit location
+  disclosure, diagnostics redaction, and six-language UI text. Runtime FIRMS
+  polling remains disabled until the correlation coordinator is connected.
 
 ## 0.8.0
 

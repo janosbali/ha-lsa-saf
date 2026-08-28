@@ -7,9 +7,9 @@ from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.core import HomeAssistant
 
 from . import LsaSafConfigEntry
-from .const import CONF_PASSWORD, CONF_USERNAME
+from .const import CONF_FIRMS_MAP_KEY, CONF_PASSWORD, CONF_USERNAME
 
-TO_REDACT = {CONF_USERNAME, CONF_PASSWORD}
+TO_REDACT = {CONF_USERNAME, CONF_PASSWORD, CONF_FIRMS_MAP_KEY}
 
 
 async def async_get_config_entry_diagnostics(

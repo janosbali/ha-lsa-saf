@@ -31,7 +31,9 @@
           "dedup_radius_km": "Radio de coincidencia del mismo incendio",
           "dedup_hours": "Tiempo de memoria del mismo incendio",
           "resolve_place_names": "Mostrar lugares cercanos en el mapa",
-          "enable_land_surface_temperature": "Activar la temperatura de la superficie terrestre"
+          "enable_land_surface_temperature": "Activar la temperatura de la superficie terrestre",
+          "enable_firms": "Activar la corroboración de NASA FIRMS",
+          "firms_map_key": "NASA FIRMS MAP_KEY"
         },
         "data_description": {
           "radius_km": "Solo se tienen en cuenta las detecciones MTG situadas a esta distancia de la ubicación Casa de Home Assistant.",
@@ -42,9 +44,16 @@
           "dedup_radius_km": "Una detección cercana a un incendio visto recientemente se considera el mismo incendio y no genera otro evento.",
           "dedup_hours": "Tiempo durante el que se suprimen los eventos repetidos del mismo incendio en la misma zona.",
           "resolve_place_names": "Busca localmente el asentamiento más cercano mediante la base de datos GeoNames cities500 incluida. No se envían coordenadas a servicios externos.",
-          "enable_land_surface_temperature": "Opcional y desactivado por defecto. Al activarlo, Home Assistant envía aproximadamente cada 15 minutos las coordenadas de Casa al servicio WMS oficial de LSA SAF adaguc.lsasvcs.ipma.pt."
+          "enable_land_surface_temperature": "Opcional y desactivado por defecto. Al activarlo, Home Assistant envía aproximadamente cada 15 minutos las coordenadas de Casa al servicio WMS oficial de LSA SAF adaguc.lsasvcs.ipma.pt.",
+          "enable_firms": "Opcional y desactivado por defecto. Al activarlo, Home Assistant envía una pequeña zona alrededor de Casa a la API oficial NASA FIRMS para buscar detecciones VIIRS independientes. Se requiere un MAP_KEY personal gratuito.",
+          "firms_map_key": "Se guarda como secreto en la entrada de configuración de Home Assistant y se oculta en los diagnósticos. Déjalo vacío para conservar una clave ya guardada."
         }
       }
+    },
+    "error": {
+      "firms_key_required": "Introduce un NASA FIRMS MAP_KEY antes de activar la corroboración",
+      "invalid_firms_key": "NASA FIRMS rechazó el MAP_KEY",
+      "firms_cannot_connect": "No se pudo validar el NASA FIRMS MAP_KEY"
     }
   },
   "entity": {

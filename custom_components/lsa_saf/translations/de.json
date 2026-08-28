@@ -31,7 +31,9 @@
           "dedup_radius_km": "Abgleichradius für dasselbe Feuer",
           "dedup_hours": "Speicherdauer für dasselbe Feuer",
           "resolve_place_names": "Nahe Ortsnamen auf der Karte anzeigen",
-          "enable_land_surface_temperature": "Landoberflächentemperatur aktivieren"
+          "enable_land_surface_temperature": "Landoberflächentemperatur aktivieren",
+          "enable_firms": "NASA-FIRMS-Bestätigung aktivieren",
+          "firms_map_key": "NASA FIRMS MAP_KEY"
         },
         "data_description": {
           "radius_km": "Nur MTG-Branderkennungen innerhalb dieser Entfernung vom Zuhause-Standort von Home Assistant werden berücksichtigt.",
@@ -42,9 +44,16 @@
           "dedup_radius_km": "Eine Erkennung in der Nähe eines kürzlich gesehenen Feuers gilt als dasselbe Feuer und erzeugt kein weiteres Ereignis.",
           "dedup_hours": "So lange werden wiederholte Ereignisse für dasselbe Feuer im selben Gebiet unterdrückt.",
           "resolve_place_names": "Ermittelt den nächsten Ort lokal anhand der enthaltenen GeoNames-cities500-Datenbank. Es werden keine Koordinaten an externe Dienste gesendet.",
-          "enable_land_surface_temperature": "Optional und standardmäßig deaktiviert. Bei Aktivierung sendet Home Assistant etwa alle 15 Minuten die Koordinaten des Zuhauses an den offiziellen LSA-SAF-WMS-Dienst adaguc.lsasvcs.ipma.pt."
+          "enable_land_surface_temperature": "Optional und standardmäßig deaktiviert. Bei Aktivierung sendet Home Assistant etwa alle 15 Minuten die Koordinaten des Zuhauses an den offiziellen LSA-SAF-WMS-Dienst adaguc.lsasvcs.ipma.pt.",
+          "enable_firms": "Optional und standardmäßig deaktiviert. Bei Aktivierung sendet Home Assistant einen kleinen Begrenzungsbereich um das Zuhause an die offizielle NASA-FIRMS-API, um unabhängige VIIRS-Erkennungen zu suchen. Ein persönlicher kostenloser MAP_KEY ist erforderlich.",
+          "firms_map_key": "Wird geheim im Home-Assistant-Konfigurationseintrag gespeichert und in Diagnosen ausgeblendet. Leer lassen, um einen bereits gespeicherten Schlüssel beizubehalten."
         }
       }
+    },
+    "error": {
+      "firms_key_required": "Vor der Aktivierung muss ein NASA FIRMS MAP_KEY eingegeben werden",
+      "invalid_firms_key": "Der NASA FIRMS MAP_KEY wurde abgelehnt",
+      "firms_cannot_connect": "Der NASA FIRMS MAP_KEY konnte nicht geprüft werden"
     }
   },
   "entity": {
