@@ -320,7 +320,11 @@ async def test_options_flow_uses_existing_values(hass) -> None:
 
     schema = result["data_schema"]
     suggested = {
-        marker.schema: marker.description.get("suggested_value")
+        marker.schema: (
+            marker.description.get("suggested_value")
+            if marker.description is not None
+            else None
+        )
         for marker in schema.schema
     }
     for key, value in existing_options.items():
