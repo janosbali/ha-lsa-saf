@@ -357,7 +357,10 @@ The domain is intentionally the generic `lsa_saf`, not `lsa_saf_mtg_fire`, so fu
 
 ### Next
 
-- prepare a separate GOES technical spike without adding production dependencies
+- GOES technical spike completed without production dependencies; see
+  [`docs/GOES_TECHNICAL_SPIKE.md`](docs/GOES_TECHNICAL_SPIKE.md). The result is
+  intentionally not enabled for Europe because GOES observes the Western
+  Hemisphere
 - stabilize the planned LSA SAF Land Surface Temperature product as an
   independent module
 

@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Complete a dependency-free GOES ABI Fire/Hot Spot technical spike.
+- Add strict GOES-18/19 FDC filename and timestamp validation plus fixed public
+  bucket metadata without enabling any new runtime network access.
+- Document that GOES is a Western Hemisphere option rather than a European LSA
+  SAF replacement, together with the security, coverage, NetCDF, and resource
+  gates required before a production adapter can be considered.
+
 ## 0.7.0
 
 - Add an explainable, provider-neutral Active Fire Situation sensor with
