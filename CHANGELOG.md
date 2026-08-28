@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.8.0
 
 - Add an optional, default-off MTLST land-surface temperature sensor using a
   bounded point query to the official LSA SAF WMS.
