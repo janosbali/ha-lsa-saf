@@ -49,7 +49,8 @@
           "scan_interval_minutes": "Check interval",
           "dedup_radius_km": "Same-fire matching radius",
           "dedup_hours": "Same-fire memory",
-          "resolve_place_names": "Show nearby place names on the map"
+          "resolve_place_names": "Show nearby place names on the map",
+          "enable_land_surface_temperature": "Enable land-surface temperature"
         },
         "data_description": {
           "radius_km": "Only MTG fire detections within this distance of Home Assistant's Home location are considered.",
@@ -59,7 +60,8 @@
           "scan_interval_minutes": "How often Home Assistant checks for a newer 10-minute MTG fire product.",
           "dedup_radius_km": "A detection near a recently seen fire is treated as the same fire and will not generate another new-fire event.",
           "dedup_hours": "How long a recently seen fire suppresses repeat new-fire events in the same area.",
-          "resolve_place_names": "Find the nearest settlement locally using the bundled GeoNames cities500 database. No coordinates are sent to an external service."
+          "resolve_place_names": "Find the nearest settlement locally using the bundled GeoNames cities500 database. No coordinates are sent to an external service.",
+          "enable_land_surface_temperature": "Optional and off by default. When enabled, Home Assistant sends the Home latitude and longitude about every 15 minutes to the official LSA SAF WMS service at adaguc.lsasvcs.ipma.pt to retrieve the latest satellite-observed land-surface temperature."
         }
       }
     }
@@ -135,6 +137,9 @@
           "critical": "Critical",
           "unknown": "Unknown"
         }
+      },
+      "land_surface_temperature": {
+        "name": "Land-surface temperature at Home"
       }
     },
     "event": {

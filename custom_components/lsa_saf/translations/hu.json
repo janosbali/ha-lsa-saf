@@ -49,7 +49,8 @@
           "scan_interval_minutes": "Ellenőrzési gyakoriság",
           "dedup_radius_km": "Azonos tűz illesztési sugara",
           "dedup_hours": "Azonos tűz megjegyzési ideje",
-          "resolve_place_names": "Közeli helynevek megjelenítése a térképen"
+          "resolve_place_names": "Közeli helynevek megjelenítése a térképen",
+          "enable_land_surface_temperature": "Felszínhőmérséklet engedélyezése"
         },
         "data_description": {
           "radius_km": "Csak a Home Assistant Otthon helyétől ezen a távolságon belüli MTG tűzészlelések számítanak.",
@@ -59,7 +60,8 @@
           "scan_interval_minutes": "Milyen gyakran ellenőrizze a Home Assistant az új 10 perces MTG tűzterméket.",
           "dedup_radius_km": "A közelmúltban látott tűzhöz közeli észlelés ugyanannak a tűznek számít, így nem keletkezik új esemény.",
           "dedup_hours": "Ennyi ideig nyomja el az azonos helyen jelentkező ismételt új-tűz eseményt.",
-          "resolve_place_names": "A legközelebbi települést helyben keresi meg a csomagolt GeoNames cities500 adatbázisból. Koordinátát nem küld külső szolgáltatásnak."
+          "resolve_place_names": "A legközelebbi települést helyben keresi meg a csomagolt GeoNames cities500 adatbázisból. Koordinátát nem küld külső szolgáltatásnak.",
+          "enable_land_surface_temperature": "Opcionális és alapból kikapcsolt. Bekapcsolva a Home Assistant körülbelül 15 percenként elküldi az Otthon szélességi és hosszúsági koordinátáját az LSA SAF hivatalos adaguc.lsasvcs.ipma.pt WMS-szolgáltatásának a legfrissebb műholdas felszínhőmérséklet lekéréséhez."
         }
       }
     }
@@ -135,6 +137,9 @@
           "critical": "Kritikus",
           "unknown": "Ismeretlen"
         }
+      },
+      "land_surface_temperature": {
+        "name": "Felszínhőmérséklet az otthonnál"
       }
     },
     "event": {

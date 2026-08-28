@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Add an optional, default-off MTLST land-surface temperature sensor using a
+  bounded point query to the official LSA SAF WMS.
+- Clearly disclose that enabling MTLST sends the Home coordinates to the
+  official service about every 15 minutes; disabled installations make no
+  MTLST request and create no MTLST entity.
+- Preserve MTLST observation time, quality flag, uncertainty, sample location,
+  product attribution, and the distinction between air and radiative land-skin
+  temperature.
 - Complete a dependency-free GOES ABI Fire/Hot Spot technical spike.
 - Add strict GOES-18/19 FDC filename and timestamp validation plus fixed public
   bucket metadata without enabling any new runtime network access.

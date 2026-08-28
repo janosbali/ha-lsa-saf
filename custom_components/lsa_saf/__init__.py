@@ -8,9 +8,11 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
+    CONF_ENABLE_LAND_SURFACE_TEMPERATURE,
     CONF_PASSWORD,
     CONF_RESOLVE_PLACE_NAMES,
     CONF_USERNAME,
+    DEFAULT_ENABLE_LAND_SURFACE_TEMPERATURE,
     DEFAULT_RESOLVE_PLACE_NAMES,
     DOMAIN,
     PLATFORMS,
@@ -18,8 +20,10 @@ from .const import (
 from .coordinator import LsaSafCoordinator
 from .fire_risk_coordinator import FireRiskCoordinator
 from .geocoding import PlaceNameResolver
+from .lst_coordinator import LandSurfaceTemperatureCoordinator
 from .products.fire import ActiveFireClient
 from .products.fire_risk import FireRiskClient
+from .products.lst import LandSurfaceTemperatureClient
 from .providers.mtg import MtgActiveFireProvider
 
 
@@ -31,6 +35,7 @@ class RuntimeData:
     fire_risk_coordinator: FireRiskCoordinator
     fire_risk_client: FireRiskClient
     place_name_resolver: PlaceNameResolver | None
+    lst_coordinator: LandSurfaceTemperatureCoordinator
 
 
 type LsaSafConfigEntry = ConfigEntry[RuntimeData]
@@ -50,11 +55,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: LsaSafConfigEntry) -> bo
     await coordinator.async_config_entry_first_refresh()
     fire_risk_client = FireRiskClient(session)
     fire_risk_coordinator = FireRiskCoordinator(hass, entry, fire_risk_client)
+    lst_coordinator = LandSurfaceTemperatureCoordinator(
+        hass, entry, LandSurfaceTemperatureClient(session)
+    )
     entry.runtime_data = RuntimeData(
         coordinator=coordinator,
         fire_risk_coordinator=fire_risk_coordinator,
         fire_risk_client=fire_risk_client,
         place_name_resolver=resolver,
+        lst_coordinator=lst_coordinator,
     )
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_create_background_task(
@@ -62,6 +71,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: LsaSafConfigEntry) -> bo
         fire_risk_coordinator.async_refresh(),
         f"{DOMAIN} initial FRMv3 forecast",
     )
+    if entry.options.get(
+        CONF_ENABLE_LAND_SURFACE_TEMPERATURE,
+        DEFAULT_ENABLE_LAND_SURFACE_TEMPERATURE,
+    ):
+        entry.async_create_background_task(
+            hass,
+            lst_coordinator.async_refresh(),
+            f"{DOMAIN} initial MTLST observation",
+        )
     return True
 
 

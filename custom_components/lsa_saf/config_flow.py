@@ -14,6 +14,7 @@ from .api import LsaSafAuthError, LsaSafError
 from .const import (
     CONF_DEDUP_HOURS,
     CONF_DEDUP_RADIUS_KM,
+    CONF_ENABLE_LAND_SURFACE_TEMPERATURE,
     CONF_FIRE_RISK_RADIUS_KM,
     CONF_MIN_CONFIDENCE,
     CONF_MIN_FRP_MW,
@@ -24,6 +25,7 @@ from .const import (
     CONF_USERNAME,
     DEFAULT_DEDUP_HOURS,
     DEFAULT_DEDUP_RADIUS_KM,
+    DEFAULT_ENABLE_LAND_SURFACE_TEMPERATURE,
     DEFAULT_FIRE_RISK_RADIUS_KM,
     DEFAULT_MIN_CONFIDENCE,
     DEFAULT_MIN_FRP_MW,
@@ -174,6 +176,7 @@ class LsaSafOptionsFlow(OptionsFlowWithReload):
                     NumberSelectorConfig(min=1, max=48, step=1, unit_of_measurement="h", mode=NumberSelectorMode.BOX)
                 ),
                 vol.Required(CONF_RESOLVE_PLACE_NAMES): bool,
+                vol.Required(CONF_ENABLE_LAND_SURFACE_TEMPERATURE): bool,
             }
         )
         return self.async_show_form(
@@ -192,4 +195,7 @@ def _default_options() -> dict[str, Any]:
         CONF_DEDUP_RADIUS_KM: DEFAULT_DEDUP_RADIUS_KM,
         CONF_DEDUP_HOURS: DEFAULT_DEDUP_HOURS,
         CONF_RESOLVE_PLACE_NAMES: DEFAULT_RESOLVE_PLACE_NAMES,
+        CONF_ENABLE_LAND_SURFACE_TEMPERATURE: (
+            DEFAULT_ENABLE_LAND_SURFACE_TEMPERATURE
+        ),
     }

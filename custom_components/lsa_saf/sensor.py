@@ -5,36 +5,93 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity, SensorStateClass
-from homeassistant.const import UnitOfLength, UnitOfPower
+from homeassistant.const import UnitOfLength, UnitOfPower, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import LsaSafConfigEntry
-from .entity import LsaSafEntity, LsaSafFireRiskEntity
+from .const import (
+    CONF_ENABLE_LAND_SURFACE_TEMPERATURE,
+    DEFAULT_ENABLE_LAND_SURFACE_TEMPERATURE,
+)
+from .entity import (
+    LsaSafEntity,
+    LsaSafFireRiskEntity,
+    LsaSafLandSurfaceTemperatureEntity,
+)
 from .models import ProviderStatus
 from .products.fire_risk import WMS_URL
+from .products.lst import WMS_URL as LST_WMS_URL
 
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: LsaSafConfigEntry, async_add_entities: AddConfigEntryEntitiesCallback
 ) -> None:
-    async_add_entities(
-        [
-            NearestFireSensor(entry),
-            ActiveFireCountSensor(entry),
-            RawPixelCountSensor(entry),
-            ProductTimeSensor(entry),
-            ProductAgeSensor(entry),
-            ProviderStatusSensor(entry),
-            RecentDetectionsSensor(entry),
-            FireActivityFrpChangeSensor(entry),
-            NewIncidents24hSensor(entry),
-            ActiveFireSituationSensor(entry),
-            FireRiskTodaySensor(entry),
-            FireRiskAreaMaximumSensor(entry),
-            FireRiskUpdateSensor(entry),
-        ]
-    )
+    entities = [
+        NearestFireSensor(entry),
+        ActiveFireCountSensor(entry),
+        RawPixelCountSensor(entry),
+        ProductTimeSensor(entry),
+        ProductAgeSensor(entry),
+        ProviderStatusSensor(entry),
+        RecentDetectionsSensor(entry),
+        FireActivityFrpChangeSensor(entry),
+        NewIncidents24hSensor(entry),
+        ActiveFireSituationSensor(entry),
+        FireRiskTodaySensor(entry),
+        FireRiskAreaMaximumSensor(entry),
+        FireRiskUpdateSensor(entry),
+    ]
+    if entry.options.get(
+        CONF_ENABLE_LAND_SURFACE_TEMPERATURE,
+        DEFAULT_ENABLE_LAND_SURFACE_TEMPERATURE,
+    ):
+        entities.append(LandSurfaceTemperatureSensor(entry))
+    async_add_entities(entities)
+
+
+class LandSurfaceTemperatureSensor(
+    LsaSafLandSurfaceTemperatureEntity, SensorEntity
+):
+    """Latest satellite-observed radiative land-surface temperature at Home."""
+
+    _attr_translation_key = "land_surface_temperature"
+    _attr_device_class = SensorDeviceClass.TEMPERATURE
+    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_suggested_display_precision = 1
+    _attr_icon = "mdi:thermometer-lines"
+
+    def __init__(self, entry: LsaSafConfigEntry) -> None:
+        super().__init__(entry)
+        self._attr_unique_id = f"{entry.entry_id}_land_surface_temperature"
+
+    @property
+    def native_value(self) -> float | None:
+        data = self.coordinator.data
+        if data is None or data.temperature_celsius is None:
+            return None
+        return round(data.temperature_celsius, 2)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        data = self.coordinator.data
+        if data is None:
+            return {
+                "product": "MTLST",
+                "attribution": "EUMETSAT / LSA SAF, CC BY 4.0",
+            }
+        return {
+            "observed_at": data.observed_at.isoformat(),
+            "sample_latitude": round(data.latitude, 6),
+            "sample_longitude": round(data.longitude, 6),
+            "uncertainty_k": data.uncertainty_kelvin,
+            "quality": data.quality,
+            "product": "MTLST",
+            "source_url": LST_WMS_URL,
+            "attribution": "EUMETSAT / LSA SAF, CC BY 4.0",
+            "measurement_note": "radiative_land_skin_temperature",
+        }
 
 
 class NearestFireSensor(LsaSafEntity, SensorEntity):

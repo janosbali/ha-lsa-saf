@@ -30,7 +30,8 @@
           "scan_interval_minutes": "Intervalle de vérification",
           "dedup_radius_km": "Rayon de correspondance d’un même feu",
           "dedup_hours": "Durée de mémorisation d’un même feu",
-          "resolve_place_names": "Afficher les lieux proches sur la carte"
+          "resolve_place_names": "Afficher les lieux proches sur la carte",
+          "enable_land_surface_temperature": "Activer la température de surface"
         },
         "data_description": {
           "radius_km": "Seules les détections MTG situées dans cette distance du domicile Home Assistant sont prises en compte.",
@@ -40,7 +41,8 @@
           "scan_interval_minutes": "Fréquence à laquelle Home Assistant recherche un produit MTG de dix minutes plus récent.",
           "dedup_radius_km": "Une détection proche d’un feu récent est considérée comme le même feu et ne génère pas de nouvel événement.",
           "dedup_hours": "Durée pendant laquelle les événements répétés d’un même feu dans la même zone sont supprimés.",
-          "resolve_place_names": "Recherche localement la localité la plus proche à l’aide de la base GeoNames cities500 incluse. Aucune coordonnée n’est envoyée à un service externe."
+          "resolve_place_names": "Recherche localement la localité la plus proche à l’aide de la base GeoNames cities500 incluse. Aucune coordonnée n’est envoyée à un service externe.",
+          "enable_land_surface_temperature": "Option désactivée par défaut. Si elle est activée, Home Assistant envoie environ toutes les 15 minutes les coordonnées du domicile au service WMS officiel LSA SAF adaguc.lsasvcs.ipma.pt."
         }
       }
     }
@@ -60,6 +62,7 @@
       "fire_activity_frp_change": {"name": "Variation de la FRP de l’activité incendie sur une heure"},
       "new_incidents_24h": {"name": "Nouveaux incendies au cours des dernières 24 heures"}
       ,"active_fire_situation": {"name": "Situation des incendies actifs", "state": {"normal": "Normale", "elevated": "Élevée", "high": "Haute", "critical": "Critique", "unknown": "Inconnue"}}
+      ,"land_surface_temperature": {"name": "Température de surface au domicile"}
     },
     "event": {"new_fire": {"name": "Nouveau feu actif"}, "fire_risk_increase": {"name": "Augmentation du risque d’incendie"}, "fire_trend": {"name": "Changement de tendance d’un incendie"}},
     "select": {"fire_risk_day": {"name": "Jour de prévision du risque d’incendie", "state": {"today": "Aujourd’hui", "tomorrow": "Demain", "in_2_days": "Dans 2 jours", "in_3_days": "Dans 3 jours", "in_4_days": "Dans 4 jours", "in_5_days": "Dans 5 jours", "in_6_days": "Dans 6 jours", "in_7_days": "Dans 7 jours", "in_8_days": "Dans 8 jours", "in_9_days": "Dans 9 jours"}}},

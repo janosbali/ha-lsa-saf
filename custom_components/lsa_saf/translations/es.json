@@ -30,7 +30,8 @@
           "scan_interval_minutes": "Intervalo de comprobación",
           "dedup_radius_km": "Radio de coincidencia del mismo incendio",
           "dedup_hours": "Tiempo de memoria del mismo incendio",
-          "resolve_place_names": "Mostrar lugares cercanos en el mapa"
+          "resolve_place_names": "Mostrar lugares cercanos en el mapa",
+          "enable_land_surface_temperature": "Activar la temperatura de la superficie terrestre"
         },
         "data_description": {
           "radius_km": "Solo se tienen en cuenta las detecciones MTG situadas a esta distancia de la ubicación Casa de Home Assistant.",
@@ -40,7 +41,8 @@
           "scan_interval_minutes": "Frecuencia con la que Home Assistant busca un producto MTG de diez minutos más reciente.",
           "dedup_radius_km": "Una detección cercana a un incendio visto recientemente se considera el mismo incendio y no genera otro evento.",
           "dedup_hours": "Tiempo durante el que se suprimen los eventos repetidos del mismo incendio en la misma zona.",
-          "resolve_place_names": "Busca localmente el asentamiento más cercano mediante la base de datos GeoNames cities500 incluida. No se envían coordenadas a servicios externos."
+          "resolve_place_names": "Busca localmente el asentamiento más cercano mediante la base de datos GeoNames cities500 incluida. No se envían coordenadas a servicios externos.",
+          "enable_land_surface_temperature": "Opcional y desactivado por defecto. Al activarlo, Home Assistant envía aproximadamente cada 15 minutos las coordenadas de Casa al servicio WMS oficial de LSA SAF adaguc.lsasvcs.ipma.pt."
         }
       }
     }
@@ -60,6 +62,7 @@
       "fire_activity_frp_change": {"name": "Cambio de FRP de la actividad del incendio en una hora"},
       "new_incidents_24h": {"name": "Nuevos incidentes de incendio en las últimas 24 horas"}
       ,"active_fire_situation": {"name": "Situación de incendios activos", "state": {"normal": "Normal", "elevated": "Elevada", "high": "Alta", "critical": "Crítica", "unknown": "Desconocida"}}
+      ,"land_surface_temperature": {"name": "Temperatura de la superficie en Casa"}
     },
     "event": {"new_fire": {"name": "Nuevo incendio activo"}, "fire_risk_increase": {"name": "Aumento del riesgo de incendio"}, "fire_trend": {"name": "Cambio de tendencia del incidente de incendio"}},
     "select": {"fire_risk_day": {"name": "Día de previsión del riesgo de incendio", "state": {"today": "Hoy", "tomorrow": "Mañana", "in_2_days": "Dentro de 2 días", "in_3_days": "Dentro de 3 días", "in_4_days": "Dentro de 4 días", "in_5_days": "Dentro de 5 días", "in_6_days": "Dentro de 6 días", "in_7_days": "Dentro de 7 días", "in_8_days": "Dentro de 8 días", "in_9_days": "Dentro de 9 días"}}},

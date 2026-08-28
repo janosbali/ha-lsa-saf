@@ -12,6 +12,7 @@ from custom_components.lsa_saf.api import LsaSafAuthError, LsaSafError
 from custom_components.lsa_saf.const import (
     CONF_DEDUP_HOURS,
     CONF_DEDUP_RADIUS_KM,
+    CONF_ENABLE_LAND_SURFACE_TEMPERATURE,
     CONF_FIRE_RISK_RADIUS_KM,
     CONF_MIN_CONFIDENCE,
     CONF_MIN_FRP_MW,
@@ -22,6 +23,7 @@ from custom_components.lsa_saf.const import (
     CONF_USERNAME,
     DEFAULT_DEDUP_HOURS,
     DEFAULT_DEDUP_RADIUS_KM,
+    DEFAULT_ENABLE_LAND_SURFACE_TEMPERATURE,
     DEFAULT_FIRE_RISK_RADIUS_KM,
     DEFAULT_MIN_CONFIDENCE,
     DEFAULT_MIN_FRP_MW,
@@ -76,6 +78,9 @@ async def test_user_flow_success(hass, mock_test_auth: AsyncMock) -> None:
         CONF_DEDUP_RADIUS_KM: DEFAULT_DEDUP_RADIUS_KM,
         CONF_DEDUP_HOURS: DEFAULT_DEDUP_HOURS,
         CONF_RESOLVE_PLACE_NAMES: DEFAULT_RESOLVE_PLACE_NAMES,
+        CONF_ENABLE_LAND_SURFACE_TEMPERATURE: (
+            DEFAULT_ENABLE_LAND_SURFACE_TEMPERATURE
+        ),
     }
     mock_test_auth.assert_awaited_once()
 
@@ -253,6 +258,7 @@ async def test_options_flow_defaults_and_save(hass) -> None:
         CONF_DEDUP_RADIUS_KM: 4.0,
         CONF_DEDUP_HOURS: 12.0,
         CONF_RESOLVE_PLACE_NAMES: True,
+        CONF_ENABLE_LAND_SURFACE_TEMPERATURE: True,
     }
     result = await hass.config_entries.options.async_configure(
         result["flow_id"], new_options
@@ -273,6 +279,7 @@ async def test_options_flow_uses_existing_values(hass) -> None:
         CONF_DEDUP_RADIUS_KM: 2.5,
         CONF_DEDUP_HOURS: 8.0,
         CONF_RESOLVE_PLACE_NAMES: True,
+        CONF_ENABLE_LAND_SURFACE_TEMPERATURE: False,
         "geocoding_url": "https://geo.example.org/reverse",
     }
     entry = MockConfigEntry(

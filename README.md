@@ -16,14 +16,30 @@ LSA SAF exposes several related satellite products through the same ecosystem. T
 |---|---|---|---|
 | MTG Fire Radiative Power Pixel | LSA-509 / MTFRPPIXEL | ~1 km / 10 min | **Implemented** |
 | Fire Risk Map v3 Forecast | FRMv3 | Europe / daily, day 0…9 | **Implemented** |
-| MTG Land Surface Temperature | LSA-007 / MTLST | ~2 km / 10 min | Architecture prepared; NetCDF point extraction planned |
+| MTG Land Surface Temperature | LSA-007 / MTLST | ~2 km / 10 min; up to 60 min publication delay | **Implemented, optional** |
 | Evapotranspiration | LSA SAF ET family | product-dependent | Roadmap |
 | Solar radiation / fluxes | LSA SAF radiation family | product-dependent | Roadmap |
 | Vegetation metrics | NDVI/FVC/LAI/FAPAR/GPP | product-dependent | Roadmap |
 
-The integration currently enables **MTG Active Fire Detection** and the public
-**FRMv3 Fire Risk Map** forecast. MTLST remains isolated under `products/` so it
-can be added later without changing the integration domain or repository.
+The integration enables **MTG Active Fire Detection** and the public **FRMv3
+Fire Risk Map** forecast. The MTLST point sensor is optional and disabled by
+default.
+
+## MTG Land Surface Temperature
+
+MTLST reports the radiative temperature of the land surface, not the shaded air
+temperature reported by a weather station. When explicitly enabled in the
+integration options, Home Assistant sends the configured Home latitude and
+longitude to the official `adaguc.lsasvcs.ipma.pt` LSA SAF WMS approximately
+every 15 minutes. The option is disabled by default; while disabled, no MTLST
+request is made and no MTLST entity is created.
+
+The sensor exposes the latest temperature in the user's preferred temperature
+unit. Attributes preserve the observation time, sampled coordinates, product
+quality label, uncertainty in kelvin, product ID, source, and CC BY 4.0
+attribution. A clear-sky satellite observation can be unavailable because of
+cloud, coverage, or publication delay; such a result remains unavailable rather
+than being replaced with an invented value.
 
 ## MTG Active Fire Detection
 
@@ -362,7 +378,8 @@ The domain is intentionally the generic `lsa_saf`, not `lsa_saf_mtg_fire`, so fu
   intentionally not enabled for Europe because GOES observes the Western
   Hemisphere
 - stabilize the planned LSA SAF Land Surface Temperature product as an
-  independent module
+  independent, explicit opt-in module. Enabling it sends the configured Home
+  coordinates to the official LSA SAF WMS about every 15 minutes
 
 ### Multi-source detection and incident verification
 
@@ -376,6 +393,8 @@ The domain is intentionally the generic `lsa_saf`, not `lsa_saf_mtg_fire`, so fu
   different retention periods can be compared consistently
 - preserve source attribution, observation time, resolution, confidence, and
   FRP for every contributing detection
+- add GOES-18/19 as an optional location-aware provider for covered Western
+  Hemisphere users after the NetCDF/resource gates in the technical spike pass
 
 ### News and official-report enrichment
 
