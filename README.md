@@ -384,6 +384,9 @@ The domain is intentionally the generic `lsa_saf`, not `lsa_saf_mtg_fire`, so fu
 ### Multi-source detection and incident verification
 
 - add NASA FIRMS as an optional secondary active-fire provider
+- FIRMS foundation implemented without runtime registration: bounded official
+  Area API client/parser and provider-neutral NOAA-20/NOAA-21 VIIRS adapter;
+  configuration, scheduling, and correlation remain intentionally disabled
 - correlate nearby LSA SAF and FIRMS detections by location and acquisition time
 - expose a provider-neutral confirmation level instead of treating either
   satellite source as authoritative on its own

@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Add the first disabled-by-design NASA FIRMS provider foundation: bounded
+  NOAA-20/NOAA-21 VIIRS Area API parsing, fixed-host HTTP controls, credential
+  redaction, and provider-neutral normalization. It is not yet exposed in Home
+  Assistant and performs no runtime network requests.
+- Preserve FIRMS categorical confidence values without presenting them as
+  fabricated numeric probabilities.
+
 ## 0.8.0
 
 - Add an optional, default-off MTLST land-surface temperature sensor using a
